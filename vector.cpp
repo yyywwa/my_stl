@@ -21,11 +21,11 @@ private:
 		finish = start+n;
 		end_of_storage = finish;
 	}
-	void realloc(){
+	void realloc(){//保留相对位置
 		size_type _size = size();
 		size_type new_capacity =  capacity() * 2;
 		iterator temp = new T[new_capacity]();
-		copy(begin(),end(),temp);
+		_copy(begin(),end(),temp);
 		if(start != nullptr)
 			delete[] start;
 		start = temp;
@@ -33,7 +33,7 @@ private:
 		end_of_storage = start +  new_capacity;
 	}
 public:
-	void realloc(size_type size){
+	void realloc(size_type size){//重置相对位置
 			if(start != nullptr)
 				delete[] start;
 			start = new T[size]();
@@ -89,6 +89,13 @@ public:
 		_copy(first,first+size,start);
 		finish = start + size;
 	}
+	vector(iterator first,iterator last){
+		size_type size = last - first;
+		if(capacity() < size)
+			realloc(size);
+		_copy(first,last,start);
+		finish += size;
+	}
 	~vector(){delete[] start;}
 	reference front(){return *begin();}
 	reference back(){return *(end() - 1);}
@@ -109,7 +116,7 @@ public:
 		}
 	}
 	void pop_back(){--finish;}
-	iterator copy(iterator first ,iterator last,iterator new_first){
+	iterator copy(iterator first ,iterator last,iterator new_first){//用于同一数组间
 		if(new_first == first)
 			return new_first;
 		if(new_first < first){
@@ -125,7 +132,7 @@ public:
 		}
 		return new_first;
 	}
-	void _copy(iterator first,iterator last, iterator new_first){
+	void _copy(iterator first,iterator last, iterator new_first){//用于不同数组间
 		for(;first!=last;++first,++new_first)
 			*new_first = *first;
 	}
@@ -158,7 +165,7 @@ public:
 					*(temp++) = value;
 			}else{
 				realloc();
-				temp = finish ;
+				temp = finish;
 				for(int i = 0;i < n;++i)
 					*(temp++) = value;
 			}
@@ -167,21 +174,22 @@ public:
 		}
 		if(end() + n <= end_of_storage){
 			copy(position,end(),position+n);
-			for(iterator temp = position;temp < position + n;++temp)
+			iterator temp = position;
+			for(;temp < position + n;++temp)
 				*(temp) = value;
 			finish += n;
-			return position;
+			return temp;
 		}else{
-			if(capacity()*2 < size()+n)
-				return position;
 			size_type _size = end() - position;
-			realloc();
+			while(capacity() < size() + n)
+				realloc();
 			position = end() - _size;
 			copy(position,end(),position+n);
-			for(iterator temp = position;temp < position + n;++temp)
+			iterator temp = position;
+			for(;temp < position + n;++temp)
 				*(temp) = value;
 			finish += n;
-			return position;
+			return temp;
 		}
 	}
 	iterator insert(iterator first,size_type n,const iterator _first){
