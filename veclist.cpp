@@ -22,6 +22,9 @@ public:
 			push_back(temp[i]);
 	}
 	veclist(veclist& V){
+		*this = V;
+	}
+	void operator=(veclist& V){
 		realloc(V.capacity());	
 		size_type size = V.size();
 		for(size_type i = 0;i < size;++i){
