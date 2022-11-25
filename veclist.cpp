@@ -1,9 +1,6 @@
 #include"./vector.cpp"
 template <typename T>
 class veclist{
-private:
-	vector<T*> index;
-	void realloc(){index.realloc();}
 public:
 	typedef T		    value_type;
 	typedef value_type* pointer;
@@ -11,9 +8,12 @@ public:
 	typedef value_type& reference;
 	typedef size_t		size_type;
 	typedef ptrdiff_t	difference_type;
+private:
+	vector<T*> index;
+	void realloc(size_type size){index.realloc(size);}
 public:
 	veclist(){}
-	veclist(size_type size){index.realloc(size);}
+	veclist(size_type size){realloc(size);}
 	template <typename ...Args>
 	veclist(const Args& ...args){
 		size_type size = sizeof...(args);
@@ -21,13 +21,29 @@ public:
 		for(size_type i = 0;i < size;++i)
 			push_back(temp[i]);
 	}
-	size_type size(){return index.size();}
+	veclist(veclist& V){
+		realloc(V.capacity());	
+		size_type size = V.size();
+		for(size_type i = 0;i < size;++i){
+			push_back(V[i]);
+		}
+	}
+	template <typename P>
+	veclist(P& first){
+		size_type size = sizeof(first)/sizeof(first[0]);
+		if(size > capacity())
+			realloc(size  * 2);
+		for(size_type i = 0;i < size;++i)
+			push_back(*(first+i));
+	}
 	~veclist(){
 		size_type count = size();
 		for(size_type i = 0;i < count;++i){
 			delete[] index[i];
 		}
 	}
+	size_type size(){return index.size();}
+	size_type capacity(){return index.capacity();}
 	reference operator[](size_type i ){return *index[i];}
 	reference front(){return *index.front();}
 	reference back(){return *index.back();}
@@ -76,5 +92,12 @@ public:
 			*temp[i] = value;
 		}
 		index.insert(first,n,temp);
+	}
+	void show(){
+		size_type size = this->size();
+		for(size_type i = 0;i < size;++i){
+			std::cout<<*index[i]<<" ";	
+		}
+		std::cout<<std::endl;
 	}
 };

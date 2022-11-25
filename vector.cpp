@@ -26,21 +26,20 @@ private:
 		size_type new_capacity =  capacity() * 2;
 		iterator temp = new T[new_capacity]();
 		copy(begin(),end(),temp);
-		delete[] start;
+		if(start != nullptr)
+			delete[] start;
 		start = temp;
 		finish = start + _size;
 		end_of_storage = start +  new_capacity;
 	}
+public:
 	void realloc(size_type size){
-		if(size > capacity()){
 			if(start != nullptr)
 				delete[] start;
 			start = new T[size]();
 			finish = start;
 			end_of_storage = start + size;
-		}
 	}
-public:
 	iterator begin(){return start;}
 	iterator end(){return finish;}
 	size_type size(){return size_type(end() - begin());}
@@ -67,6 +66,24 @@ public:
 		T temp[] = {args...};
 		for(size_type i = 0;i < size;++i)
 			push_back(temp[i]);
+	}
+	template <typename P>
+	vector(P& first){
+		size_type size = sizeof(first)/sizeof(first[0]);
+		if(size < defaultSize)
+			realloc(defaultSize);
+		else
+			realloc(size * 2);
+		_copy(first,first+size,start);
+		finish = start + size;
+	}
+	vector(vector& V){
+		*this = V;
+	}
+	void operator=(vector& V){
+		realloc(V.capacity());
+		copy(V.begin(),V.end(),begin());
+		finish = start+V.size();
 	}
 	~vector(){delete[] start;}
 	reference front(){return *begin();}
@@ -103,6 +120,10 @@ public:
 				*(temp1) = *(temp2);
 		}
 		return new_first;
+	}
+	void _copy(iterator first,iterator last, iterator new_first){
+		for(;first!=last;++first,++new_first)
+			*new_first = *first;
 	}
 	iterator erase(iterator position){
 		if(position + 1 != end())
@@ -181,5 +202,12 @@ public:
 			erase(begin()+new_size,end());
 		else
 			insert(end(),new_size - size(),x);		
+	}
+	void show(){
+		size_type size = this->size();
+		for(size_type i = 0;i < size;++i){
+			std::cout<<*(start+i)<<" ";
+		}
+		std::cout<<std::endl;
 	}
 };
