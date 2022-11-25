@@ -25,6 +25,8 @@ public:
 		*this = V;
 	}
 	void operator=(veclist& V){
+		if(this->size() != 0)
+			clear();
 		realloc(V.capacity());	
 		size_type size = V.size();
 		for(size_type i = 0;i < size;++i){
@@ -33,18 +35,19 @@ public:
 	}
 	template <typename P>
 	veclist(P& first){
+		*this = first;
+	}
+	template <typename P>
+	void operator=(P& first){
+		if(this->size() != 0)
+			clear();
 		size_type size = sizeof(first)/sizeof(first[0]);
 		if(size > capacity())
 			realloc(size  * 2);
 		for(size_type i = 0;i < size;++i)
 			push_back(*(first+i));
 	}
-	~veclist(){
-		size_type count = size();
-		for(size_type i = 0;i < count;++i){
-			delete[] index[i];
-		}
-	}
+	~veclist(){clear();}
 	size_type size(){return index.size();}
 	size_type capacity(){return index.capacity();}
 	reference operator[](size_type i ){return *index[i];}
@@ -55,7 +58,7 @@ public:
 		for(;first != last;++first)
 			if(*index[first] == value)
 				break;
-		return first == size()?temp:first;
+		return first == this->size()?temp:first;
 	}
 	void push_back(const T& value){
 		iterator temp = new T;
@@ -63,19 +66,19 @@ public:
 		index.push_back(temp);
 	}
 	void pop_back(){
-		if(size() > 0){
+		if(this->size() > 0){
 			delete index.back();
 			index.pop_back();
 		}
 	}
 	void erase(size_type n){
-		if(0 < n&&n < size()){
+		if(0 < n&&n < this->size()){
 			delete index[n];
 			index.erase(n);
 		}
 	}
 	void  erase(size_type first,size_type last){
-		if(0 < first && last <= size()){
+		if(0 < first && last <= this->size()){
 			size_type count = last - first;
 			for(int i = 0;i < count;++i){
 				delete index[first+i];
@@ -95,6 +98,12 @@ public:
 			*temp[i] = value;
 		}
 		index.insert(first,n,temp);
+	}
+	void clear(){
+		size_type size = this->size();
+		for(size_type i = 0;i < size;++i)
+			delete index[i];
+		index.clear();
 	}
 	void show(){
 		size_type size = this->size();
