@@ -69,13 +69,7 @@ public:
 	}
 	template <typename P>
 	vector(P& first){
-		size_type size = sizeof(first)/sizeof(first[0]);
-		if(size < defaultSize)
-			realloc(defaultSize);
-		else
-			realloc(size * 2);
-		_copy(first,first+size,start);
-		finish = start + size;
+		*this = first;
 	}
 	vector(vector& V){
 		*this = V;
@@ -84,6 +78,16 @@ public:
 		realloc(V.capacity());
 		copy(V.begin(),V.end(),begin());
 		finish = start+V.size();
+	}
+	template <typename P>
+	void operator=(P& first){
+		size_type size = sizeof(first)/sizeof(first[0]);
+		if(size < defaultSize)
+			realloc(defaultSize);
+		else
+			realloc(size * 2);
+		_copy(first,first+size,start);
+		finish = start + size;
 	}
 	~vector(){delete[] start;}
 	reference front(){return *begin();}
