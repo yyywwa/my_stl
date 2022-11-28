@@ -1,7 +1,10 @@
-#include<iostream>
 #define defaultSize 10 
+#define multiplication_factor 2
+#include<iostream>
+template <typename P>
+static int arraySize(P&array){return sizeof(array)/sizeof(array[0]);}
 template <typename T>
-class vector{
+class vector {
 public:
 	typedef T		    value_type;
 	typedef value_type* pointer;
@@ -13,213 +16,215 @@ private:
 	iterator start = nullptr;//当前使用的头
 	iterator finish;//当前使用的尾
 	iterator end_of_storage;//可用空间的尾
-	void fill_initialize(size_type n,const T& value){
+	iterator copy(iterator first, iterator last, iterator new_first) {//用于同一数组间
+		if (new_first == first)
+			return new_first;
+		if (new_first < first) {
+			iterator temp1 = new_first;
+			iterator temp2 = first;
+			for (; temp2 < last; ++temp1, ++temp2)
+				*(temp1) = *(temp2);
+		}
+		else {
+			iterator temp1 = new_first + (last - first) - 1;
+			iterator temp2 = last - 1;
+			for (; temp2 >= first; --temp1, --temp2){
+				*(temp1) = *(temp2);
+			}
+		}
+		return new_first;
+	}//左闭右开
+	void _copy(iterator first, iterator last, iterator new_first) {//用于不同数组间
+		for (; first != last; ++first, ++new_first)
+			*new_first = *first;
+	}//左闭右开
+	void fill_initialize(size_type n, const T& value) {
 		start = new T[n]();
-		for(size_type i = 0;i < n;++i){
+		for (size_type i = 0; i < n; ++i) {
 			start[i] = value;
 		}
-		finish = start+n;
+		finish = start + n;
 		end_of_storage = finish;
 	}
-	void realloc(){//保留相对位置
-		size_type _size = size();
-		size_type new_capacity =  capacity() * 2;
-		iterator temp = new T[new_capacity]();
-		_copy(begin(),end(),temp);
-		if(start != nullptr)
-			delete[] start;
-		start = temp;
-		finish = start + _size;
-		end_of_storage = start +  new_capacity;
+	void _keep_realloc(size_type new_size) {//保留相对位置
+		if (new_size > end_of_storage - start) {
+			size_type location_size = finish - start;
+			iterator temp = start;
+			start = new T[new_size]();
+			_copy(temp,temp+location_size,start);
+			delete[] temp;
+			finish = start + location_size;
+			end_of_storage = start + new_size; 
+		}
+	}
+	void _redouble(size_type factor = multiplication_factor) {
+		_keep_realloc(factor * (end_of_storage - start));}//扩容
+	void _realloc(size_type size) {//清空原容器，创建新容器
+		delete[] start;
+		start = new T[size]();
+		finish = start;
+		end_of_storage = start + size;
+	}
+	void _creat(size_type n = defaultSize) {//默认构造动态数组
+		start = new T[n]();
+		finish = start;
+		end_of_storage = start + n;
 	}
 public:
-	void realloc(size_type size){//重置相对位置
-			if(start != nullptr)
-				delete[] start;
-			start = new T[size]();
-			finish = start;
-			end_of_storage = start + size;
-	}
-	iterator begin(){return start;}
-	iterator end(){return finish;}
-	size_type size(){return size_type(end() - begin());}
-	size_type capacity(){
-		return size_type(end_of_storage - begin());}
-	bool empty() const{return begin()==end();}
-	reference operator[](size_type n){return *(begin() + n);}	
-	vector(){
-		start = new T[defaultSize]();
-		finish = start;
-		end_of_storage = start + defaultSize;
-	}
-	vector(size_type n,const T& value){fill_initialize(n,value);}
-	vector(int n,const T& value){fill_initialize(n,value);}
-	vector(long n,const T& value){fill_initialize(n,value);}
-	explicit vector(size_type n){realloc(n);}
+	vector() { _creat(); }
+	vector(size_type n, const T& value) { fill_initialize(n, value); }
+	vector(int n, const T& value) { fill_initialize(n, value); }
+	vector(long n, const T& value) { fill_initialize(n, value); }
+	explicit vector(size_type n) { _creat(n); }
+
 	template<typename ...Args>
-	vector(const Args& ...args){
+	vector(const Args& ...args) {//使其可以使用{}进行初始化，如vector<int> a = {1,2,3,4,5} or a(1,2,3,4,5);
 		size_type size = sizeof...(args);
-		if(size > defaultSize)
-			realloc(defaultSize);
+		if (size > defaultSize)
+			_creat();
 		else
-			realloc(size * 2);
-		T temp[] = {args...};
-		for(size_type i = 0;i < size;++i)
+			_creat(size * 2);
+		T temp[] = { args... };
+		for (size_type i = 0; i < size; ++i)
 			push_back(temp[i]);
 	}
 	template <typename P>
-	vector(P& first){
-		*this = first;
-	}
-	vector(vector& V){
-		*this = V;
-	}
-	void operator=(vector& V){
-		realloc(V.capacity());
-		copy(V.begin(),V.end(),begin());
-		finish = start+V.size();
-	}
-	template <typename P>
-	void operator=(P& first){
-		size_type size = sizeof(first)/sizeof(first[0]);
-		if(size < defaultSize)
-			realloc(defaultSize);
+	vector(P& first) {
+		size_type size = arraySize(first);
+		if (defaultSize >= size)
+			_creat();
 		else
-			realloc(size * 2);
-		_copy(first,first+size,start);
+			_creat(size * 2);
+		_copy(first, first + size, start);
 		finish = start + size;
 	}
-	vector(iterator first,iterator last){
-		size_type size = last - first;
-		if(capacity() < size)
-			realloc(size);
-		_copy(first,last,start);
+	vector(vector& V) {
+		_creat(V.capacity());
+		_copy(V.begin(), V.end(), start);
+		finish = start + V.size();
+	}
+	void operator=(vector& V) {
+		if (*this != V) {
+			if (capacity() < V.size())
+				_realloc(V.capacity());
+			_copy(V.begin(), V.end(), start);
+			finish = start + V.size();
+		}
+	}
+	template <typename P>
+	void operator=(P& first) {//用于引用指针，用iterator&的会报错，用iterator会让size一直为2
+		size_type size = arraySize(first);
+		if (capacity() < size)
+			_realloc(size * 2);
+		_copy(first, first + size, start);
+		finish = start + size;
+	}
+	vector(iterator first, iterator last) {//左闭右开 传入数组时需将最大值加一，传入vector则不需要
+		size_type size = size_type(last - first);
+		if (defaultSize >= size)
+			_creat();
+		else
+			_creat(size * 2);
+		_copy(first, last, start);
 		finish += size;
 	}
-	~vector(){delete[] start;}
-	reference front(){return *begin();}
-	reference back(){return *(end() - 1);}
-	iterator find(iterator first,iterator last,const T& value){
-		for(;first != last;++first)
-			if(*first == value)
+	~vector() {delete[] start;}
+	void keep_realloc(size_type size) { _keep_realloc(size); }
+	void realloc(size_type size) { _realloc(size); }//用于在类外重置vector
+	void redouble(size_type factor = multiplication_factor ) {_redouble(factor);}
+	iterator begin() { return start; }
+	iterator end() { return finish; }
+	size_type size() { return size_type(end() - begin()); }
+	size_type capacity() { return size_type(end_of_storage - start); }
+	bool empty() const { return begin() == end(); }
+	reference operator[](size_type n) { return *(begin() + n); }
+	reference at(size_type n) {
+		if (n < size())
+			return *(begin() + n);
+		else
+			std::cout<<"-------------------error------------------------"<<std::endl;
+			std::cout<<"Crossing the line in ____"<<n<<"____"<<std::endl;
+			std::cout<<"-------------------error------------------------"<<std::endl;
+			exit(-1);
+	}
+	reference front() { return *begin(); }
+	reference back() { return *(end() - 1); }
+	iterator find(iterator first, iterator last, const T& value) {
+		for (; first != last; ++first)
+			if (*first == value)
 				break;
 		return first;
 	}
-	void push_back(const T& x){
-		if(finish != end_of_storage){
+	void push_back(const T& x) {
+		if (finish != end_of_storage) {
 			*(finish) = x;
 			++finish;
-		}else{
-			realloc();
+		}
+		else {
+			_redouble();
 			*(finish) = x;
 			++finish;
 		}
 	}
-	void pop_back(){--finish;}
-	iterator copy(iterator first ,iterator last,iterator new_first){//用于同一数组间
-		if(new_first == first)
-			return new_first;
-		if(new_first < first){
-			iterator temp1 = new_first;
-			iterator temp2 = first;
-			for(;temp2 < last;++temp1,++temp2)
-				*(temp1) = *(temp2);
-		}else{
-			iterator temp1 = new_first+(last-first)-1;
-			iterator temp2 = last -1;
-			for(;temp2>=first;--temp1,--temp2)
-				*(temp1) = *(temp2);
-		}
-		return new_first;
-	}
-	void _copy(iterator first,iterator last, iterator new_first){//用于不同数组间
-		for(;first!=last;++first,++new_first)
-			*new_first = *first;
-	}
-	iterator erase(iterator position){
-		if(position + 1 != end())
-			copy(position + 1,end(),position);
+	void pop_back() { if (start != finish)--finish; }
+	iterator erase(iterator position) {
+		if (position + 1 != end())
+			copy(position + 1, end(), position);
 		--finish;
-		return position; 
+		return position;
 	}
-	iterator erase(iterator first,iterator last){
-		copy(last,end(),first);
+	iterator erase(iterator first, iterator last) {
+		copy(last, end(), first);
 		finish = finish - (last - first);
 		return first;
 	}
-	iterator erase(size_type i){return erase(start + i);}
-	iterator erase(size_type i,size_type n){return erase(start + i,start + n);}
-	void clear(){erase(begin(),end());}
-	iterator insert(iterator position,const T& value){
-		copy(position,end(),position+1);
-		*position = value;
-		finish += 1;
-		return position;
+	iterator erase(size_type i) { return erase(start + i);}
+	iterator erase(size_type i, size_type n) { return erase(start + i, start + n);}
+	void clear() { finish = start; }/*erase(begin(),end())*/
+
+	iterator insert(iterator first, size_type n, const T& value) {
+		if (end() + n > end_of_storage){
+			size_type location_size = first - start;
+			_keep_realloc((size() + n) * multiplication_factor);
+			first = start + location_size;
+		}
+		copy(first, end(), first + n);
+		iterator temp = first;
+		for (size_type i = 0; i < n; ++i)
+			*(temp++) = value;
+		finish += n;
+		return temp;
 	}
-	iterator insert(iterator position,size_type n,const T& value){
-		if(position == end()){
-			iterator temp;
-			if(end()+n <= end_of_storage){
-				temp = position;
-				for(int i = 0;i < n;++i)
-					*(temp++) = value;
-			}else{
-				realloc();
-				temp = finish;
-				for(int i = 0;i < n;++i)
-					*(temp++) = value;
-			}
-			finish += n;
-			return temp;	
+	iterator insert(iterator first, const T& value) { return insert(first, 1, value);}
+	iterator insert(iterator first, size_type n, iterator _first) {
+		if (end() + n > end_of_storage){
+			size_type location_size = first - start;
+			_keep_realloc((size() + n) * multiplication_factor);
+			first = start + location_size;
 		}
-		if(end() + n <= end_of_storage){
-			copy(position,end(),position+n);
-			iterator temp = position;
-			for(;temp < position + n;++temp)
-				*(temp) = value;
-			finish += n;
-			return temp;
-		}else{
-			size_type _size = end() - position;
-			while(capacity() < size() + n)
-				realloc();
-			position = end() - _size;
-			copy(position,end(),position+n);
-			iterator temp = position;
-			for(;temp < position + n;++temp)
-				*(temp) = value;
-			finish += n;
-			return temp;
-		}
-	}
-	iterator insert(iterator first,size_type n,const iterator _first){
-		if(end()+n > end_of_storage){
-			if(capacity()*2 < size()+n)
-				return first;
-			size_type _size = end() - first;
-			realloc();
-			first = end() - _size;
-		}
-		copy(first,end(),first+n);
-		for(size_type i = 0;i < n;++i)
-			*(first+i) = *(_first+i);
+		copy(first, end(), first + n);
+		for (size_type i = 0; i < n; ++i)
+			*(first + i) = *(_first + i);
 		finish += n;
 		return first;
 	}
-	iterator insert(size_type first,const T& value){return insert(start+first,value);}
-	iterator insert(size_type first,size_type n,const T& value){return insert(start+first,n,value);}
-	iterator insert(size_type first,size_type n,const iterator _first){return insert(start+first,n,_first);}
-	void resize(size_type new_size,const T& x){
-		if(new_size < size())
-			erase(begin()+new_size,end());
+	iterator insert(size_type first, const T& value) { return insert(start + first, value); }
+	iterator insert(size_type first, size_type n, const T& value) { return insert(start + first, n, value); }
+	iterator insert(size_type first, size_type n, const iterator _first) { return insert(start + first, n, _first); }
+	void resize(size_type new_size, const T& x) {
+		if (new_size < size())
+			erase(begin() + new_size, end());
 		else
-			insert(end(),new_size - size(),x);		
+			insert(end(), new_size - size(), x);
 	}
-	void show(){
+	void setLocationSize(size_type new_size) { finish = start + new_size; }
+	void add_finish(size_type n = 1){finish += n;};
+	void show() {
 		size_type size = this->size();
-		for(size_type i = 0;i < size;++i){
-			std::cout<<*(start+i)<<" ";
+		for (size_type i = 0; i < size; ++i) {
+			std::cout << *(start + i) << " ";
 		}
-		std::cout<<std::endl;
+		std::cout << std::endl;
 	}
+	void print(size_type i) { std::cout << *(start + i); }
 };
