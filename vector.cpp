@@ -104,7 +104,7 @@ public:
 		finish = start + V.size();
 	}
 	void operator=(vector& V) {
-		if (*this != V) {
+		if (this != &V) {
 			if (capacity() < V.size())
 				_realloc(V.capacity());
 			_copy(V.begin(), V.end(), start);
@@ -128,27 +128,35 @@ public:
 		_copy(first, last, start);
 		finish += size;
 	}
-	~vector() {delete[] start;}
+	~vector() {
+		std::cout<<"delete vector size = "<<end_of_storage - start<<std::endl;
+		delete[] start;}
 	void keep_realloc(size_type size) { _keep_realloc(size); }
 	void realloc(size_type size) { _realloc(size); }//用于在类外重置vector
 	void redouble(size_type factor = multiplication_factor ) {_redouble(factor);}
 	iterator begin() { return start; }
 	iterator end() { return finish; }
-	size_type size() { return size_type(end() - begin()); }
+	size_type size() { return size_type(finish - start); }
 	size_type capacity() { return size_type(end_of_storage - start); }
-	bool empty() const { return begin() == end(); }
-	reference operator[](size_type n) { return *(begin() + n); }
+	bool empty() const { return finish == start; }
+	reference operator[](size_type n) {
+		if(n >= capacity())
+			_keep_realloc(n * 2);
+		if(n >= size())
+			finish = start + n + 1;
+		return *(start+n);
+	}
 	reference at(size_type n) {
 		if (n < size())
-			return *(begin() + n);
+			return *(start + n);
 		else
 			std::cout<<"-------------------error------------------------"<<std::endl;
 			std::cout<<"Crossing the line in ____"<<n<<"____"<<std::endl;
 			std::cout<<"-------------------error------------------------"<<std::endl;
 			exit(-1);
 	}
-	reference front() { return *begin(); }
-	reference back() { return *(end() - 1); }
+	reference front() { return *start; }
+	reference back() { return *(finish - 1); }
 	iterator find(iterator first, iterator last, const T& value) {
 		for (; first != last; ++first)
 			if (*first == value)
@@ -168,13 +176,13 @@ public:
 	}
 	void pop_back() { if (start != finish)--finish; }
 	iterator erase(iterator position) {
-		if (position + 1 != end())
-			copy(position + 1, end(), position);
+		if (position + 1 != finish)
+			copy(position + 1, finish, position);
 		--finish;
 		return position;
 	}
 	iterator erase(iterator first, iterator last) {
-		copy(last, end(), first);
+		copy(last, finish, first);
 		finish = finish - (last - first);
 		return first;
 	}
@@ -183,12 +191,14 @@ public:
 	void clear() { finish = start; }/*erase(begin(),end())*/
 
 	iterator insert(iterator first, size_type n, const T& value) {
-		if (end() + n > end_of_storage){
+		if(first == 0)
+			first = start;
+		if (finish + n > end_of_storage){
 			size_type location_size = first - start;
 			_keep_realloc((size() + n) * multiplication_factor);
 			first = start + location_size;
 		}
-		copy(first, end(), first + n);
+		copy(first, finish, first + n);
 		iterator temp = first;
 		for (size_type i = 0; i < n; ++i)
 			*(temp++) = value;
@@ -197,12 +207,12 @@ public:
 	}
 	iterator insert(iterator first, const T& value) { return insert(first, 1, value);}
 	iterator insert(iterator first, size_type n, iterator _first) {
-		if (end() + n > end_of_storage){
+		if (finish + n > end_of_storage){
 			size_type location_size = first - start;
 			_keep_realloc((size() + n) * multiplication_factor);
 			first = start + location_size;
 		}
-		copy(first, end(), first + n);
+		copy(first, finish, first + n);
 		for (size_type i = 0; i < n; ++i)
 			*(first + i) = *(_first + i);
 		finish += n;
@@ -213,9 +223,9 @@ public:
 	iterator insert(size_type first, size_type n, const iterator _first) { return insert(start + first, n, _first); }
 	void resize(size_type new_size, const T& x) {
 		if (new_size < size())
-			erase(begin() + new_size, end());
+			erase(start + new_size, finish);
 		else
-			insert(end(), new_size - size(), x);
+			insert(finish, new_size - size(), x);
 	}
 	void setLocationSize(size_type new_size) { finish = start + new_size; }
 	void add_finish(size_type n = 1){finish += n;};

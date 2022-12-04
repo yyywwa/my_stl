@@ -13,7 +13,7 @@ private:
 	void realloc(size_type size) { index.realloc(size); }
 public:
 	veclist() {}
-	veclist(size_type size) { realloc(size); }
+	veclist(size_type size):index(size){}
 	template <typename ...Args>
 	veclist(const Args& ...args) {
 		size_type size = sizeof...(args);
@@ -52,18 +52,26 @@ public:
 			push_back(*(first + i));
 	}
 	~veclist() {
-		size_type size = index.capacity();
+		size_type size = index.size();
 		std::cout<<std::endl;
 		for(size_type i = 0;i<size && index[i]!=nullptr;++i){
-			std::cout<<"del "<<"array["<<i<<"]= "
-					 <<*index[i]<<" : "<<index[i]<<std::endl;
+			std::cout<<"delete "<<"array["<<i<<"] : "<<index[i]<<std::endl;
 			delete index[i];
 		}
 		std::cout<<std::endl;
 	}
 	size_type size() { return index.size(); }
 	size_type capacity() { return index.capacity(); }
-	reference operator[](size_type i) { return *index[i]; }
+	reference operator[](size_type n) {
+		if(n >= size()){
+			__iterator temp = nullptr;
+			for(size_type i = size();i <= n;++i){
+				temp = new T;
+				index[i] = temp;	
+			}
+		}
+		return *index[n];
+	}
 	reference at(size_type n){
 		if (n < size()){
 			return *(index[n]);}
@@ -107,15 +115,15 @@ public:
 		}
 	}
 	void  erase(size_type first, size_type last) {
-		if (0 < first && last <= this->size()) {
+		if (0 <= first && last <= this->size()) {
 			size_type count = last - first;
 			for (size_type i = 0; i < count; ++i) {
-				std::cout<<"del array["<<first+i<<"]= "<<*index[first+i]
-				<<" :"<<index[first+i]<<std::endl; 
+				std::cout<<"erase array["<<first+i<<"]= "<<*index[first+i]
+				<<" : "<<index[first+i]<<std::endl; 
 				delete index[first + i];
 			}
 			std::cout<<std::endl;
-			index.erase(first, last);
+			index.erase(index.begin()+first,index.begin()+last);
 		}
 	}//不删除会造成覆盖，导致内存泄漏
 	void insert(size_type i, const T& value) {
