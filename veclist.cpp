@@ -152,15 +152,8 @@ public:
 	size_type capacity() { return index.capacity(); }
 
 	reference operator[](size_type n) {
-		if(n >= size()){
-			iterator temp = nullptr;
-			for(size_type i = size();i <= n;++i){
-				temp = new T;
-				index[i] = temp;	
-			}
-		}
 		return *index[n];
-	}
+	}//*[]不该是扩容的操作
 
 	reference at(size_type n){
 		if (n < size()){

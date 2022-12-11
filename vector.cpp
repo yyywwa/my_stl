@@ -241,12 +241,8 @@ public:
 	void clear() { finish = start; }/*erase(begin(),end())*/
 
 	reference operator[](size_type n) {
-		if(n >= capacity())
-			_keep_realloc(n * 2);
-		if(n >= size())
-			finish = start + n + 1;
 		return *(start+n);
-	}
+	}//*[]不该是扩容的操作
 
 	reference at(size_type n) {
 		if (n < size())
