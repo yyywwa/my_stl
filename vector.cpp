@@ -248,10 +248,7 @@ public:
 		if (n < size())
 			return *(start + n);
 		else
-			std::cout<<"-------------------error------------------------"<<std::endl;
-			std::cout<<"Crossing the line in ____"<<n<<"____"<<std::endl;
-			std::cout<<"-------------------error------------------------"<<std::endl;
-			exit(-1);
+			throw "Array out of bounds";
 	}
 
 	reference front() { return *start; }
@@ -268,7 +265,7 @@ public:
 
 	bool empty() const { return finish == start; }
 
-	iterator find(iterator first, iterator last, const T& value) {
+	iterator find(iterator first, iterator last, T& value) {
 		for (; first != last; ++first)
 			if (*first == value)
 				break;

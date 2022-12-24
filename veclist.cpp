@@ -79,6 +79,17 @@ public:
 		}
 	}
 
+	void push_back(T* pointer){
+		if (index.size() == index.capacity())
+			index.redouble();
+		if(*(index.end()) == nullptr){
+			index.push_back(pointer);
+		}else{
+			*(index.end()) = pointer;
+			index.add_finish();	
+		}
+	}
+
 	void pop_back() {
 		if (index.size() > 0) {
 			index.pop_back();
@@ -151,27 +162,24 @@ public:
 
 	size_type capacity() { return index.capacity(); }
 
+	size_type begin() {return 0;}
+
+	size_type end() {return index.size();}
+
 	reference operator[](size_type n) {
 		return *index[n];
 	}//*[]不该是扩容的操作
 
 	reference at(size_type n){
-		if (n < size()){
-			return *(index[n]);}
-		else{
-			std::cout<<"-------------------error------------------------"<<std::endl;
-			std::cout<<"Crossing the line in ____"<<n<<"____"<<std::endl;
-			std::cout<<"-------------------error------------------------"<<std::endl;
-			exit(-1);
-		}
+		return *(index.at(n));
 	}
 
-	size_type find(size_type first, size_type last, const T& value) {
-		size_type temp = first;
+	template <typename P>
+	size_type find(size_type first, size_type last,P& value) {
 		for (; first != last; ++first)
 			if (*index[first] == value)
 				break;
-		return first == this->size() ? temp : first;
-	}
+		return first != last?first:-1;
+	}//* 可重载==运算符
 
 };
