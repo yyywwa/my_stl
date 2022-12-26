@@ -58,36 +58,20 @@ public:
 
 	~veclist() {
 		size_type size = index.size();
-		std::cout<<std::endl;
+		//std::cout<<std::endl;
 		for(size_type i = 0;i<size && index[i]!=nullptr;++i){
-			std::cout<<"delete "<<"array["<<i<<"] : "<<index[i]<<std::endl;
+			//std::cout<<"delete "<<"array["<<i<<"] : "<<index[i]<<std::endl;
 			delete index[i];
 		}
-		std::cout<<std::endl;
+		//std::cout<<std::endl;
 	}
 
 	void push_back(const T& value) {
-		if (index.size() == capacity())
-			index.redouble();
-		if(index[index.size()] == nullptr){
-			iterator temp = new T;
-			*temp = value;
-			index.push_back(temp);
-		}else{
-			*index[index.size()] = value;
-			index.add_finish();	
-		}
+		index.push_back(new T(value));
 	}
 
 	void push_back(T* pointer){
-		if (index.size() == index.capacity())
-			index.redouble();
-		if(*(index.end()) == nullptr){
-			index.push_back(pointer);
-		}else{
-			*(index.end()) = pointer;
-			index.add_finish();	
-		}
+		index.push_back(pointer);
 	}
 
 	void pop_back() {
@@ -97,7 +81,7 @@ public:
 	}
 
 	void erase(size_type n) {
-		if (0 < n && n < index.size()) {
+		if (0 <= n && n < index.size()) {
 			delete index[n];//不删除会造成覆盖，导致内存泄漏
 			index.erase(n);
 		}
@@ -107,11 +91,11 @@ public:
 		if (0 <= first && last <= index.size()) {
 			size_type count = last - first;
 			for (size_type i = 0; i < count; ++i) {
-				std::cout<<"erase array["<<first+i<<"]= "<<*index[first+i]
-				<<" : "<<index[first+i]<<std::endl; 
+			//	std::cout<<"erase array["<<first+i<<"]= "<<*index[first+i]
+			//		 <<" : "<<index[first+i]<<std::endl; 
 				delete index[first + i];
 			}
-			std::cout<<std::endl;
+			//std::cout<<std::endl;
 			index.erase(index.begin()+first,index.begin()+last);
 		}
 	}//不删除会造成覆盖，导致内存泄漏
@@ -142,7 +126,13 @@ public:
 		index.insert(first,n,temp);
 	}
 
-	void clear() { index.clear(); }
+	void clear(){
+		size_type size = index.size();
+		for(auto i = 0;i < size;++i){
+			delete index[i];
+		}
+		index.clear();
+	}
 
 	void show() {
 		size_type size = index.size();
@@ -179,7 +169,7 @@ public:
 		for (; first != last; ++first)
 			if (*index[first] == value)
 				break;
-		return first != last?first:-1;
+		return first;
 	}//* 可重载==运算符
 
 };

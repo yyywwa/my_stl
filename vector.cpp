@@ -1,5 +1,5 @@
-#define defaultSize 10 
-#define multiplication_factor 2
+#define defaultSize 10 //* 初始化大小
+#define multiplication_factor 2 //*倍增指数
 #include<iostream>
 template <typename P>
 static int arraySize(P&array){return sizeof(array)/sizeof(array[0]);}
@@ -134,7 +134,7 @@ public:
 			_realloc(size * 2);
 		_copy(first, first + size, start);
 		finish = start + size;
-	}
+	}//用数组赋值
 
 	vector(iterator first, iterator last) {//左闭右开 传入数组时需将最大值加一，传入vector则不需要
 		size_type size = size_type(last - first);
@@ -147,7 +147,7 @@ public:
 	}
 
 	~vector() {
-		std::cout<<"delete vector size = "<<end_of_storage - start<<std::endl;
+		//std::cout<<"delete vector size = "<<end_of_storage - start<<std::endl;
 		delete[] start;}
 
 	void push_back(const T& x) {
@@ -165,8 +165,8 @@ public:
 	void pop_back() { if (start != finish)--finish; }
 
 	iterator _erase(iterator position) {
-		if (position + 1 != finish)
-			copy(position + 1, finish, position);
+		//if (position + 1 != finish)
+		copy(position + 1, finish, position);
 		--finish;
 		return position;
 	}
@@ -179,7 +179,7 @@ public:
 
 	iterator _insert(iterator first, size_type n, const T& value) {
 		if(first == 0)
-			first = start;
+			first = start;//*如果传入0则认为是空指针,所以做此优化
 		if (finish + n > end_of_storage){
 			size_type location_size = first - start;
 			_keep_realloc((size() + n) * multiplication_factor);
@@ -204,7 +204,7 @@ public:
 			*(first + i) = *(_first + i);
 		finish += n;
 		return first;
-	}
+	}//*插入整个数组
 
 	void show() {
 		size_type size = this->size();
