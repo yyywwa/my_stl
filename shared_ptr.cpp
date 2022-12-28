@@ -8,47 +8,56 @@ namespace mystd{
         T* _ptr = nullptr;
         int count = 0;
     public:
-        _basic(T* outPtr):_ptr(outPtr){}
+        _basic(T* outPtr):_ptr(outPtr) {}
 
-        void operator ++(){
-            ++count;
-        }
+        void operator ++() { ++count; }
 
-        void operator --(){
-            --count;
-        }
+        void operator --() { --count; }
 
-        bool operator ==(T* outPtr){
-            return _ptr == outPtr;
-        }
+        bool operator ==(T* outPtr) { return _ptr == outPtr; }//* mystd::veclist::finde 要用 
 
-        int getCount(){
-            return count;
-        }
-    };
+        int getCount() { return count; }
+
+    };//*创建表需要用到这个类
 
     template <typename T>
     class shared_ptr{
     private:
         static veclist<_basic<T>> _shared_ptr_map;//*为相同类型指针创建表
         T* _ptr = nullptr;
-        void (*deleter)(T*) = nullptr;//*用于指定对指针的析构函数,返回值为void，参数为该类型指针
+        void (*deleterFunction_ptr)(T*) = nullptr;//*用于指定对指针的析构函数,返回值为void，参数为该类型指针
+        
+        class _basic_deleter {
+            public:
+                virtual void operator()(T*) = 0;
+                
+                virtual ~_basic_deleter() {}
+        };
+        _basic_deleter* _deleter_ptr = nullptr;
 
-        void minus(T* outPtr){
+        void minus(T* outPtr) {
             unsigned __int64  it = find(outPtr);
-            --_shared_ptr_map[it];
-            if(_shared_ptr_map[it].getCount() == 0){
-                if(deleter != nullptr)
-                    deleter(outPtr);
-                else  
-                    delete outPtr;
-                _shared_ptr_map.erase(it);
+            if(it != _shared_ptr_map.end()) {
+                    --_shared_ptr_map[it];
+                if(_shared_ptr_map[it].getCount() == 0) {
+                    if(deleterFunction_ptr != nullptr)
+                        deleterFunction_ptr(outPtr);
+                    else if(_deleter_ptr != nullptr)
+                        _deleter_ptr->operator()(outPtr);
+                    else  
+                        delete outPtr;
+                    _shared_ptr_map.erase(it);
+                }
+            }
+            if(_deleter_ptr != nullptr) {
+                delete _deleter_ptr;
+                _deleter_ptr = nullptr; 
             }
         }
 
-        void add(T* outPtr){
+        void add(T* outPtr) {
             unsigned __int64 it = find(outPtr);
-            if(it == _shared_ptr_map.end()){
+            if(it == _shared_ptr_map.end()) {
                 _shared_ptr_map.push_back(new _basic<T>(outPtr));
                 ++_shared_ptr_map.back();
             }
@@ -57,40 +66,44 @@ namespace mystd{
             }
         }
 
-        unsigned __int64 find(T* outPtr){
+        unsigned __int64 find(T* outPtr) {
             return _shared_ptr_map.find(_shared_ptr_map.begin(),_shared_ptr_map.end(),outPtr);
         }
 
     public:
-        shared_ptr(T* outPtr):_ptr(outPtr){
+        shared_ptr(T* outPtr):_ptr(outPtr) {
             add(outPtr);
         }
         
-        shared_ptr(T* outPtr,void(*outDeleter)(T*)):_ptr(outPtr),deleter(outDeleter){
+        shared_ptr(T* outPtr,void(*outDeleter)(T*)):_ptr(outPtr),deleterFunction_ptr(outDeleter) {
             add(outPtr);
         }
 
-        ~shared_ptr(){
-            minus(_ptr);
-        }
+        template <typename D>
+        shared_ptr(T* outPtr,D&& outDeleter):_ptr(outPtr) {
+            add(outPtr);
+            
+            class _deleter :public D,public _basic_deleter {
+                public:
+                    virtual void operator() (T* outPtr) {
+                        D::operator() (outPtr);
+                    }
+            };
 
-        T& operator *(){
-            return *_ptr;
-        }
+            _deleter_ptr = new _deleter;
+        }       
 
-        T* operator +(int n){
-            return _ptr+n;
-        }
+        ~shared_ptr() { minus(_ptr); }
 
-        T* operator -(int n){
-            return _ptr-n;
-        }
+        T& operator *() { return *_ptr; }
 
-        T* operator ->(){
-            return _ptr;
-        }
+        T* operator +(int n) { return _ptr+n; }
 
-        void reset(T* outPtr){
+        T* operator -(int n) { return _ptr-n; }
+
+        T* operator ->() { return _ptr; }
+
+        void reset(T* outPtr) {
             if(outPtr == _ptr)
                 return;
             minus(_ptr);
@@ -98,7 +111,7 @@ namespace mystd{
             _ptr = outPtr;
         }
 
-        void reset(const shared_ptr<T>& x){
+        void reset(const shared_ptr<T>& x) {
             if(_ptr == x._ptr)
                 return;
             minus(_ptr);
@@ -106,25 +119,39 @@ namespace mystd{
             _ptr = x._ptr;
         }
 
-        void setDeleter(void (*outDeleter)(T*)){
-            deleter = outDeleter;
+        void setDeleter(void (*outDeleter)(T*)) { deleterFunction_ptr = outDeleter; }
+
+        template<typename D>
+        void setDeleter(D&& outDeleter) {
+            class _deleter_2:public D,public _basic_deleter {
+                public:
+                    void operator() (T* outPtr) {
+                        D::operator()(outPtr);
+                    }
+            };
+
+            if(_deleter_ptr != nullptr)
+                delete _deleter_ptr;
+            _deleter_ptr = new _deleter_2;
         }
 
-        T* get(){
-            return _ptr;
-        }
+        T* get() { return _ptr; }
 
-        int use_count(){
+        int use_count() {
             unsigned __int64 it = find(_ptr);
             return _shared_ptr_map[it].getCount();
         }
 
-        void swap(shared_ptr<T>& A){
+        void swap(shared_ptr<T>& A) {
             T* temp = A._ptr;
             A._ptr = this->_ptr;
             this->_ptr = temp;
         }
+        
+        void release() { minus(_ptr); }
+
     };
+
     template <typename T>
     veclist<_basic<T>> shared_ptr<T>::_shared_ptr_map;
 }

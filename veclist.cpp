@@ -17,7 +17,7 @@ namespace mystd{
 	public:
 		veclist() {}
 
-		veclist(size_type size):index(size){}
+		veclist(size_type size):index(size) {}
 		
 		template <typename ...Args>
 		veclist(const Args& ...args) {
@@ -33,7 +33,7 @@ namespace mystd{
 
 		void operator=(veclist& V) {
 			size_type size = V.size();
-			if(capacity() > size){
+			if(capacity() > size) {
 				clear();//使用原空间
 				for(size_type i = 0;i < size;++i)
 					push_back(V[i]);
@@ -62,7 +62,7 @@ namespace mystd{
 		~veclist() {
 			size_type size = index.size();
 			//std::cout<<std::endl;
-			for(size_type i = 0;i<size && index[i]!=nullptr;++i){
+			for(size_type i = 0;i<size && index[i]!=nullptr;++i) {
 				//std::cout<<"delete "<<"array["<<i<<"] : "<<index[i]<<std::endl;
 				delete index[i];
 			}
@@ -73,7 +73,7 @@ namespace mystd{
 			index.push_back(new T(value));
 		}
 
-		void push_back(T* pointer){
+		void push_back(T* pointer) {
 			index.push_back(pointer);
 		}
 
@@ -118,20 +118,20 @@ namespace mystd{
 			index.insert(first, n, temp);
 		}
 
-		void insert(size_type first,size_type n,iterator _first){
+		void insert(size_type first,size_type n,iterator _first) {
 			if(index.size()+n > capacity())
 				index.keep_realloc((index.size()+n) * 2);
 			iterator temp[n];
-			for(size_type i = 0;i < n;++i){
+			for(size_type i = 0;i < n;++i) {
 				temp[i] = new T;
 				*temp[i] = _first[i];
 			}
 			index.insert(first,n,temp);
 		}
 
-		void clear(){
+		void clear() {
 			size_type size = index.size();
-			for(auto i = 0;i < size;++i){
+			for(auto i = 0;i < size;++i) {
 				delete index[i];
 			}
 			index.clear();
@@ -163,7 +163,7 @@ namespace mystd{
 			return *index[n];
 		}//*[]不该是扩容的操作
 
-		reference at(size_type n){
+		reference at(size_type n) {
 			return *(index.at(n));
 		}
 
