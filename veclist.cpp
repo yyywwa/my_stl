@@ -175,6 +175,8 @@ namespace mystd{
 			return first;
 		}//* 可重载==运算符
 
+	bool empty() { return index.empty(); }
+
 	};
 }
 #endif

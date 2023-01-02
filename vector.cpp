@@ -4,8 +4,6 @@
 namespace mystd{
 	#define defaultSize 10 //* 初始化大小
 	#define multiplication_factor 2 //*倍增指数
-	template <typename P>
-	static int arraySize(P&array){return sizeof(array)/sizeof(array[0]);}
 	template <typename T>
 	class vector {
 	public:

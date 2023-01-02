@@ -31,11 +31,15 @@ namespace mystd{
             public:
                 virtual void operator()(T*) = 0;
                 
+                virtual _basic_deleter* get_new() = 0;
+
                 virtual ~_basic_deleter() {}
         };
         _basic_deleter* _deleter_ptr = nullptr;
 
         void minus(T* outPtr) {
+            if(outPtr == nullptr) 
+                return;
             unsigned __int64  it = find(outPtr);
             if(it != _shared_ptr_map.end()) {
                     --_shared_ptr_map[it];
@@ -47,11 +51,8 @@ namespace mystd{
                     else  
                         delete outPtr;
                     _shared_ptr_map.erase(it);
+                    _ptr = nullptr;
                 }
-            }
-            if(_deleter_ptr != nullptr) {
-                delete _deleter_ptr;
-                _deleter_ptr = nullptr; 
             }
         }
 
@@ -71,6 +72,9 @@ namespace mystd{
         }
 
     public:
+
+
+
         shared_ptr(T* outPtr):_ptr(outPtr) {
             add(outPtr);
         }
@@ -80,7 +84,7 @@ namespace mystd{
         }
 
         template <typename D>
-        shared_ptr(T* outPtr,D&& outDeleter):_ptr(outPtr) {
+        shared_ptr(T* outPtr, const D& outDeleter):_ptr(outPtr) {
             add(outPtr);
             
             class _deleter :public D,public _basic_deleter {
@@ -88,12 +92,25 @@ namespace mystd{
                     virtual void operator() (T* outPtr) {
                         D::operator() (outPtr);
                     }
+
+                    virtual _basic_deleter* get_new() {
+                        return new _deleter;
+                    }
             };
 
             _deleter_ptr = new _deleter;
         }       
+        
+        shared_ptr(T* outPtr,void* _d_ptr):_ptr(outPtr),_deleter_ptr(static_cast<_basic_deleter*>(_d_ptr)) {
+            add(outPtr);
+        }
 
-        ~shared_ptr() { minus(_ptr); }
+
+        ~shared_ptr() { 
+            minus(_ptr);
+            if(_deleter_ptr != nullptr) 
+                delete _deleter_ptr;
+        }
 
         T& operator *() { return *_ptr; }
 
@@ -125,8 +142,12 @@ namespace mystd{
         void setDeleter(D&& outDeleter) {
             class _deleter_2:public D,public _basic_deleter {
                 public:
-                    void operator() (T* outPtr) {
+                    virtual void operator() (T* outPtr) {
                         D::operator()(outPtr);
+                    }
+
+                    virtual _basic_deleter* get_new() {
+                        return new _deleter_2;
                     }
             };
 
@@ -134,8 +155,6 @@ namespace mystd{
                 delete _deleter_ptr;
             _deleter_ptr = new _deleter_2;
         }
-
-        T* get() { return _ptr; }
 
         int use_count() {
             unsigned __int64 it = find(_ptr);
@@ -146,9 +165,30 @@ namespace mystd{
             T* temp = A._ptr;
             A._ptr = this->_ptr;
             this->_ptr = temp;
+
+            auto temp_p_f = deleterFunction_ptr;
+            deleterFunction_ptr = A.deleterFunction_ptr;
+            A.deleterFunction_ptr = temp_p_f;
+
+            auto temp_p = _deleter_ptr;
+            _deleter_ptr = A._deleter_ptr;
+            A._deleter_ptr = temp_p;
         }
         
         void release() { minus(_ptr); }
+
+        T* get() { return _ptr; }
+
+        void* get_deleter() {
+            if(_deleter_ptr != nullptr)
+                return _deleter_ptr->get_new();
+            else
+                return nullptr;
+        }
+
+        auto get_deleter_function() {
+            return deleterFunction_ptr;
+        }
 
     };
 
