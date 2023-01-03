@@ -18,7 +18,7 @@ namespace mystd{
 		veclist() {}
 
 		veclist(size_type size):index(size) {}
-		
+	
 		template <typename ...Args>
 		veclist(const Args& ...args) {
 			size_type size = sizeof...(args);
@@ -178,5 +178,6 @@ namespace mystd{
 	bool empty() { return index.empty(); }
 
 	};
+
 }
 #endif

@@ -149,7 +149,8 @@ namespace mystd{
 
 		~vector() {
 			//std::cout<<"delete vector size = "<<end_of_storage - start<<std::endl;
-			delete[] start;}
+			delete[] start;
+		}
 
 		void push_back(const T& x) {
 			if (finish != end_of_storage) {

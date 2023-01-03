@@ -1,4 +1,5 @@
 #include"./veclist.cpp"
+#include<functional>
 #ifndef _SHARED_PTR_CPP
 #define _SHARED_PTR_CPP
 namespace mystd{
@@ -25,7 +26,7 @@ namespace mystd{
     private:
         static veclist<_basic<T>> _shared_ptr_map;//*为相同类型指针创建表
         T* _ptr = nullptr;
-        void (*deleterFunction_ptr)(T*) = nullptr;//*用于指定对指针的析构函数,返回值为void，参数为该类型指针
+        void (*deleterFunction_ptr)(T*) = nullptr;//*用于指定对指针的析构函数, 返回值为void，参数为该类型指针
         
         class _basic_deleter {
             public:
@@ -68,7 +69,7 @@ namespace mystd{
         }
 
         unsigned __int64 find(T* outPtr) {
-            return _shared_ptr_map.find(_shared_ptr_map.begin(),_shared_ptr_map.end(),outPtr);
+            return _shared_ptr_map.find(_shared_ptr_map.begin(), _shared_ptr_map.end(), outPtr);
         }
 
     public:
@@ -79,15 +80,21 @@ namespace mystd{
             add(outPtr);
         }
         
-        shared_ptr(T* outPtr,void(*outDeleter)(T*)):_ptr(outPtr),deleterFunction_ptr(outDeleter) {
+        shared_ptr(T* outPtr, void(*outDeleter)(T*)):_ptr(outPtr), deleterFunction_ptr(outDeleter) {
             add(outPtr);
+        }
+        
+        
+        template <typename D>
+        static auto convert(D&& outDeleter) {
+            return static_cast<void(*)(T*)>(outDeleter);
         }
 
         template <typename D>
-        shared_ptr(T* outPtr, const D& outDeleter):_ptr(outPtr) {
+        shared_ptr(T* outPtr, D&& outDeleter):_ptr(outPtr) {
             add(outPtr);
-            
-            class _deleter :public D,public _basic_deleter {
+
+            class _deleter :public D, public _basic_deleter {
                 public:
                     virtual void operator() (T* outPtr) {
                         D::operator() (outPtr);
@@ -97,13 +104,13 @@ namespace mystd{
                         return new _deleter;
                     }
             };
-
             _deleter_ptr = new _deleter;
+
         }       
         
-        shared_ptr(T* outPtr,void* _d_ptr):_ptr(outPtr),_deleter_ptr(static_cast<_basic_deleter*>(_d_ptr)) {
+        shared_ptr(T* outPtr, void* _d_ptr):_ptr(outPtr), _deleter_ptr(static_cast<_basic_deleter*>(_d_ptr)) {
             add(outPtr);
-        }
+        } //*用于接get_deleter() 返回的指针，用_basic_deleter类型的指针会报错
 
 
         ~shared_ptr() { 
@@ -139,8 +146,8 @@ namespace mystd{
         void setDeleter(void (*outDeleter)(T*)) { deleterFunction_ptr = outDeleter; }
 
         template<typename D>
-        void setDeleter(D&& outDeleter) {
-            class _deleter_2:public D,public _basic_deleter {
+        void setDeleter(const D& outDeleter) {
+            class _deleter_2:public D, public _basic_deleter {
                 public:
                     virtual void operator() (T* outPtr) {
                         D::operator()(outPtr);
@@ -184,7 +191,7 @@ namespace mystd{
                 return _deleter_ptr->get_new();
             else
                 return nullptr;
-        }
+        }//*用_basic_deleter类的指针使用构造函数时会报错，不知道为什么
 
         auto get_deleter_function() {
             return deleterFunction_ptr;
