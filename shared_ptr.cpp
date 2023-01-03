@@ -1,5 +1,4 @@
 #include"./veclist.cpp"
-#include<functional>
 #ifndef _SHARED_PTR_CPP
 #define _SHARED_PTR_CPP
 namespace mystd{
