@@ -36,12 +36,12 @@ shared_ptr用法
 
 3.使用lambda表达式  
   1.使用static_cast转换lambda表达式  
-    mystd::shared_ptr<int> a(new int[10], static_cast<void(*)(int*)>(([](int*ptr) {  
+    mystd::shared_ptr<int> a(new int[10], static_cast<void(*)(int*)>((/[](int*ptr) {  
         delete[] ptr;  
     })));  
     
   2.使用convert_lambda函数  
-    mystd::shared_ptr<int> a(new int[10], a.convert_lambda([](int*ptr) {  
+    mystd::shared_ptr<int> a(new int[10], a.convert_lambda(/[](int*ptr) {  
         delete[] ptr;  
     })); //本质上还是使用static_cast<void*(int*)>来转换  
  
