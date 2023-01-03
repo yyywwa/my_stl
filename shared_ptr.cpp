@@ -86,7 +86,7 @@ namespace mystd{
         
         
         template <typename D>
-        static auto convert(D&& outDeleter) {
+        static auto convert_lambda(D&& outDeleter) {
             return static_cast<void(*)(T*)>(outDeleter);
         }
 
