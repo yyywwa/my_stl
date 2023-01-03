@@ -163,6 +163,12 @@ namespace mystd{
             _deleter_ptr = new _deleter_2;
         }
 
+        void setDeleter(void* _d_p) {
+            if(_deleter_ptr != nullptr)
+                delete _deleter_ptr;
+            _deleter_ptr = static_cast<_basic_deleter*>(_d_p);
+       }
+
         int use_count() {
             unsigned __int64 it = find(_ptr);
             return _shared_ptr_map[it].getCount();
