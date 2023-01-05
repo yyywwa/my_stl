@@ -1,183 +1,284 @@
-#include"./vector.cpp"
-#ifndef _VECLIST_CPP
-#define _VECLIST_CPP
-namespace mystd{
-	template <typename T>
-	class veclist {
-	public:
-		typedef T		    value_type;
-		typedef value_type* pointer;
-		typedef value_type* iterator;
-		typedef value_type& reference;
-		typedef size_t		size_type;
-		typedef ptrdiff_t	difference_type;
-	private:
-		vector<T*> index;
-		void realloc(size_type size) { index.realloc(size); }
-	public:
-		veclist() {}
+#include "./vector.cpp"
+#ifndef _MY_VECLIST_CPP
+#define _MY_VECLIST_CPP
+namespace mystd {
 
-		veclist(size_type size):index(size) {}
-	
-		template <typename ...Args>
-		veclist(const Args& ...args) {
-			size_type size = sizeof...(args);
-			T temp[] = { args... };
-			for (size_type i = 0; i < size; ++i)
-				push_back(temp[i]);
-		}
-		
-		veclist(veclist& V) {
-			*this = V;
-		}
+    template <typename T>
+    class veclist {
+        public:
+            typedef T value_type;
+            typedef T& reference;
+            typedef std::size_t size_type;
+        private:
+            vector<T*> index;
 
-		void operator=(veclist& V) {
-			size_type size = V.size();
-			if(capacity() > size) {
-				clear();//使用原空间
-				for(size_type i = 0;i < size;++i)
-					push_back(V[i]);
-			}
-			else{
-				realloc(V.capacity());//申请新空间
-				for(size_type i = 0;i < size;++i)
-					push_back(V[i]);
-			}	
-		}
+            void del() {
+                T** temp = index.begin();
+                T** end = index.end();
+                while(temp != end) {
+                    delete *temp++;
+                }
+                index.clear();
+            }
 
-		template <typename P>
-		veclist(P& first) {*this = first;}
+            void unfold() {}
+            template <typename ...Args>
+            void unfold(const T& x,const Args& ...args) {
+                push_back(new T(x));
+                unfold(args...);
+            }
 
-		template <typename P>
-		void operator=(P& first) {
-			if (index.size() != 0)
-				clear();
-			size_type size = arraySize(first);
-			if (size > capacity())
-				realloc(size * 2);
-			for (size_type i = 0; i < size; ++i)
-				push_back(*(first + i));
-		}	
+        public:
 
-		~veclist() {
-			size_type size = index.size();
-			//std::cout<<std::endl;
-			for(size_type i = 0;i<size && index[i]!=nullptr;++i) {
-				//std::cout<<"delete "<<"array["<<i<<"] : "<<index[i]<<std::endl;
-				delete index[i];
-			}
-			//std::cout<<std::endl;
-		}
+            class iterator {
+                private:
+                    T** _ptr;
+                public:
+                    iterator():_ptr(nullptr) {}
 
-		void push_back(const T& value) {
-			index.push_back(new T(value));
-		}
+                    iterator(T** ptr):_ptr(ptr) {}
 
-		void push_back(T* pointer) {
-			index.push_back(pointer);
-		}
+                    T& operator*() {
+                        return **_ptr;
+                    }
 
-		void pop_back() {
-			if (index.size() > 0) {
-				index.pop_back();
-			}
-		}
+                    T* operator->() {
+                        return *_ptr;
+                    }
 
-		void erase(size_type n) {
-			if (0 <= n && n < index.size()) {
-				delete index[n];//不删除会造成覆盖，导致内存泄漏
-				index.erase(n);
-			}
-		}
+                    T** operator++() {
+                      return  ++_ptr;
+                    }
 
-		void  erase(size_type first, size_type last) {
-			if (0 <= first && last <= index.size()) {
-				size_type count = last - first;
-				for (size_type i = 0; i < count; ++i) {
-				//	std::cout<<"erase array["<<first+i<<"]= "<<*index[first+i]
-				//		 <<" : "<<index[first+i]<<std::endl; 
-					delete index[first + i];
-				}
-				//std::cout<<std::endl;
-				index.erase(index.begin()+first,index.begin()+last);
-			}
-		}//不删除会造成覆盖，导致内存泄漏
+                    T** operator++(int) {
+                       return _ptr++;
+                    }
 
-		void insert(size_type i, const T& value) {
-			iterator temp = new T;
-			*temp = value;
-			index.insert(i, temp);
-		}
+                    T** operator--() {
+                        return --_ptr;
+                    }
 
-		void insert(size_type first, size_type n, const T& value) {
-			iterator temp[n];
-			for (size_type i = 0; i < n; ++i) {
-				temp[i] = new T;
-				*temp[i] = value;
-			}
-			index.insert(first, n, temp);
-		}
+                    T** operator--(int) {
+                       return _ptr--;
+                    }
 
-		void insert(size_type first,size_type n,iterator _first) {
-			if(index.size()+n > capacity())
-				index.keep_realloc((index.size()+n) * 2);
-			iterator temp[n];
-			for(size_type i = 0;i < n;++i) {
-				temp[i] = new T;
-				*temp[i] = _first[i];
-			}
-			index.insert(first,n,temp);
-		}
+                    bool operator==(const iterator& i) {
+                        return _ptr == i._ptr;
+                    }
 
-		void clear() {
-			size_type size = index.size();
-			for(auto i = 0;i < size;++i) {
-				delete index[i];
-			}
-			index.clear();
-		}
+                    bool operator!=(const iterator& i) {
+                        return _ptr != i._ptr;
+                    }
 
-		void show() {
-			size_type size = index.size();
-			for (size_type i = 0; i < size; ++i) {
-				std::cout << "array[" << i << "]= "
-						<< *index[i] <<" : "<<index[i]
-						<< std::endl;
-			}
-			std::cout << std::endl;
-		}
+                    size_type subtraction(const iterator& i) {
+                        return _ptr - i._ptr;
+                    }
 
-		reference front() { return *index.front(); }
+                    iterator operator+(size_type n) {
+                        return iterator(_ptr + n);
+                    }
 
-		reference back() { return *index.back(); }
+                    iterator& operator-(size_type n) {
+                        return iterator(_ptr - n);
+                    }
 
-		size_type size() { return index.size(); }
+                    T** get() {
+                        return _ptr;
+                    }
+            };
 
-		size_type capacity() { return index.capacity(); }
+            veclist() {}
 
-		size_type begin() {return 0;}
+            veclist(size_type size):index(size) {}
 
-		size_type end() {return index.size();}
+            veclist(veclist<T>&& v) {
+                swap(v);
+            }//*被编译器优化了
 
-		reference operator[](size_type n) {
-			return *index[n];
-		}//*[]不该是扩容的操作
+            veclist(T* first, T* end):index((size_type)(end - first) * 2) {
+                T** temp = index.begin();
+                index._add_finish(end - first);
+                while(first != end) {
+                    *temp++ = new T(*first++);
+                }
+            }
 
-		reference at(size_type n) {
-			return *(index.at(n));
-		}
+            veclist(iterator first, iterator end):index(end.subtraction(first) * 2) {
+                index._add_finish(end.subtraction(first));
+                T** temp1 = index.begin();
+                T** temp2 = first.get();
+                T** _end = index.end();
+                while(temp1 != _end) {
+                    *temp1++ = new T(**temp2++);
+                }
+            }
 
-		template <typename P>
-		size_type find(size_type first, size_type last,P& value) {
-			for (; first != last; ++first)
-				if (*index[first] == value)
-					break;
-			return first;
-		}//* 可重载==运算符
+            veclist(veclist<T>& v):index(v.index.capacity()) {
+                T** temp1 = index.begin();
+                T** temp2 = v.index.begin();
+                index._add_finish(v.index.size());
+                T** end = v.index.end();
+                while(temp2 != end) {
+                    *temp1++ = new T(**temp2++);
+                }
+            }
+            
 
-	bool empty() { return index.empty(); }
+            template <typename ...Args>
+            veclist(const Args& ...args) {
+                unfold(args...);
+            }
 
-	};
+            ~veclist() {
+                del();
+            }
 
+            void push_back(const T& x) {
+                index.push_back(new T(x));
+            }
+
+            void push_back(T* ptr) {
+                if(ptr != nullptr) {
+                    index.push_back(ptr);
+                }
+            }
+
+            void pop_back() {
+                if(index.size() != 0) {
+                    delete index.back();
+                    index.pop_back();
+                }
+            }
+
+            size_type size() { return index.size(); }
+
+            T& front() { return *index.front(); }
+
+            T& back() { return *index.back(); }
+
+            iterator begin() { return iterator(index.begin()); }
+
+            iterator end() { return iterator(index.end()); }
+
+            void operator=(veclist<T>& v) {
+                del();    
+                if(index.capacity() < v.index.capacity()) {
+                    index.realloc(v.index.capacity());
+                }
+                else {
+                    index.clear();
+                }
+                auto size = v.size();
+                T** temp1 = index.begin();
+                T** temp2 = v.index.begin();
+                for(auto i = 0;i < size;++i) {
+                    temp1[i] = new T(*temp2[i]);
+                }
+                index._add_finish(size);
+            }
+
+            void operator=(veclist<T>&& v) {
+                del();
+                index.swap(v.index);
+            }
+
+            T& operator[] (size_type i) {
+                return *index[i];
+            }
+
+
+            void erase(size_type first, size_type end) {
+                if(first >= 0 && end < index.size()) {
+                    T** temp = index.begin();
+                    for(auto i = first;i != end;++i) {
+                        delete temp[i];
+                    }
+                    index.erase(temp + first,temp + end);
+                }
+            }//* 推荐使用数字而不是迭代器
+
+            iterator erase(iterator first, iterator end) {
+                size_type size = end.subtraction(first);
+                T** temp1 = first.get();
+                T** _end = end.get();
+                while(temp1 != _end) {
+                    delete *temp1++;
+                }
+                index.erase(first.get(), end.get());
+                return first;
+            }
+
+            void erase(size_type first) {
+                erase(first, first + 1);
+            }//* 推荐使用数字而不是迭代器
+
+            iterator erase(iterator first) {
+               return erase(first, first + 1); 
+            }
+
+            void insert(size_type first, size_type size, const T& x) {
+                T* temp[size];
+                for(size_type i = 0;i < size;++i) {
+                    temp[i] = new T(x);
+                }
+                index.insert(index.begin() + first, temp, temp + size);
+            }//* 推荐使用数字而不是迭代器
+
+            iterator insert(iterator first, size_type size, const T& x) {
+                T* temp[size];
+                for(size_type i = 0;i < size;++i) {
+                    temp[i] = new T(x);
+                }
+                index.insert(first.get(), temp, temp + size);
+            }
+            
+            void insert(size_type first, const T& x) {
+                insert(first, 1, x);
+            }
+
+            iterator insert(iterator first, const T& x) {
+                insert(first, 1, x);
+            }
+
+            void insert(size_type first, T* array_first, T* array_end) {
+                size_type size = array_end - array_first;
+                T* temp[size];
+                for(size_type i = 0;i < size;++i) {
+                    temp[i] = new T(array_first[i]);
+                }
+                index.insert(index.begin() + first, temp, temp + size);
+            }//* 推荐使用数字而不是迭代器
+
+            iterator insert(iterator first, T* array_first, T* array_end) {
+                size_type size = array_end - array_first;
+                T* temp[size];
+                for(size_type i = 0;i < size;++i) {
+                    temp[i] = new T(array_first[i]);
+                }
+                index.insert(first.get(), temp, temp + size);
+                return first;
+            }
+
+            void swap(veclist<T>& v) {
+                index.swap(v.index);
+            }
+            
+            void swap(veclist<T>&& v) {
+                index.swap(v.index);
+            }
+
+            template <typename X>
+            iterator find(iterator first, iterator end, const X& x) {
+                while(first != end) {
+                    if(*first == x) {
+                        break;
+                    }
+                    ++first;
+                }
+                return first;
+            }
+
+            bool empty() { return index.empty(); }
+    };
 }
 #endif

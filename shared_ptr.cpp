@@ -14,9 +14,13 @@ namespace mystd{
 
         void operator --() { --count; }
 
-        bool operator ==(T* outPtr) { return _ptr == outPtr; }//* mystd::veclist::finde 要用 
+        bool operator ==(const T* outPtr) { return _ptr == outPtr; }//* mystd::veclist::finde 要用 
 
         int getCount() { return count; }
+
+        ~_basic() {
+            std::cout<<"hello world"<<'\n';
+        }
 
     };//*创建表需要用到这个类
 
@@ -40,10 +44,10 @@ namespace mystd{
         void minus(T* outPtr) {
             if(outPtr == nullptr) 
                 return;
-            unsigned __int64  it = find(outPtr);
+            auto it = find(outPtr);
             if(it != _shared_ptr_map.end()) {
-                    --_shared_ptr_map[it];
-                if(_shared_ptr_map[it].getCount() == 0) {
+                    --(*it);
+                if((*it).getCount() == 0) {
                     if(deleterFunction_ptr != nullptr)
                         deleterFunction_ptr(outPtr);
                     else if(_deleter_ptr != nullptr)
@@ -57,17 +61,17 @@ namespace mystd{
         }
 
         void add(T* outPtr) {
-            unsigned __int64 it = find(outPtr);
+            auto it = find(outPtr);
             if(it == _shared_ptr_map.end()) {
                 _shared_ptr_map.push_back(new _basic<T>(outPtr));
                 ++_shared_ptr_map.back();
             }
             else{
-                ++_shared_ptr_map[it];
+                ++(*it);
             }
         }
 
-        unsigned __int64 find(T* outPtr) {
+        auto find(const T* outPtr) {
             return _shared_ptr_map.find(_shared_ptr_map.begin(), _shared_ptr_map.end(), outPtr);
         }
 
@@ -169,8 +173,8 @@ namespace mystd{
        }
 
         int use_count() {
-            unsigned __int64 it = find(_ptr);
-            return _shared_ptr_map[it].getCount();
+            auto it = find(_ptr);
+            return (*it).getCount();
         }
 
         void swap(shared_ptr<T>& A) {
