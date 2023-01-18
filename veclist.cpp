@@ -14,8 +14,8 @@ namespace mystd {
 
             void del() {
                 T** temp = index.begin();
-                T** end = index.end();
-                while(temp != end) {
+                T** last = index.end();
+                while(temp != last) {
                     delete *temp++;
                 }
                 index.clear();
@@ -31,6 +31,7 @@ namespace mystd {
         public:
 
             class iterator {
+                typedef iterator&   iterator_reference;
                 private:
                     T** _ptr;
                 public:
@@ -38,52 +39,41 @@ namespace mystd {
 
                     iterator(T** ptr):_ptr(ptr) {}
 
-                    T& operator*() {
-                        return **_ptr;
+                    T** get() { return _ptr; }
+
+                    T& operator*() { return **_ptr; }
+
+                    T* operator->() { return *_ptr; }
+
+                    iterator_reference operator++() { ++_ptr; return *this; }
+
+                    iterator operator++(int) {
+                        iterator temp(_ptr);
+                        _ptr++;
+                        return temp;
                     }
 
-                    T* operator->() {
-                        return *_ptr;
-                    }
+                    iterator_reference operator--() { --_ptr; return *this; }
 
-                    T** operator++() {
-                      return  ++_ptr;
-                    }
+                    iterator operator--(int) {
+                        iterator temp(_ptr);
+                        _ptr--;
+                        return temp;
+                    } 
 
-                    T** operator++(int) {
-                       return _ptr++;
-                    }
+                    bool operator==(const iterator& i) { return _ptr == i._ptr; }
 
-                    T** operator--() {
-                        return --_ptr;
-                    }
+                    bool operator!=(const iterator& i) { return _ptr != i._ptr; }
 
-                    T** operator--(int) {
-                       return _ptr--;
-                    }
+                    size_type subtraction(const iterator& i) { return _ptr - i._ptr; }
 
-                    bool operator==(const iterator& i) {
-                        return _ptr == i._ptr;
-                    }
+                    iterator operator+(size_type n) { return iterator(_ptr + n); }
 
-                    bool operator!=(const iterator& i) {
-                        return _ptr != i._ptr;
-                    }
+                    iterator operator-(size_type n) { return iterator(_ptr - n); }
 
-                    size_type subtraction(const iterator& i) {
-                        return _ptr - i._ptr;
-                    }
-
-                    iterator operator+(size_type n) {
-                        return iterator(_ptr + n);
-                    }
-
-                    iterator& operator-(size_type n) {
-                        return iterator(_ptr - n);
-                    }
-
-                    T** get() {
-                        return _ptr;
+                    friend std::ostream& operator<<(std::ostream& out, iterator& it) {
+                        out << it._ptr;
+                        return out;
                     }
             };
 
@@ -95,20 +85,20 @@ namespace mystd {
                 swap(v);
             }//*被编译器优化了
 
-            veclist(T* first, T* end):index((size_type)(end - first) * 2) {
+            veclist(T* first, T* last):index((size_type)(last - first) * 2) {
                 T** temp = index.begin();
-                index._add_finish(end - first);
-                while(first != end) {
+                index._add_finish(last - first);
+                while(first != last) {
                     *temp++ = new T(*first++);
                 }
             }
 
-            veclist(iterator first, iterator end):index(end.subtraction(first) * 2) {
-                index._add_finish(end.subtraction(first));
+            veclist(iterator first, iterator last):index(last.subtraction(first) * 2) {
+                index._add_finish(last.subtraction(first));//*改变index.end()
                 T** temp1 = index.begin();
                 T** temp2 = first.get();
-                T** _end = index.end();
-                while(temp1 != _end) {
+                T** _last = index.end();
+                while(temp1 != _last) {
                     *temp1++ = new T(**temp2++);
                 }
             }
@@ -117,8 +107,8 @@ namespace mystd {
                 T** temp1 = index.begin();
                 T** temp2 = v.index.begin();
                 index._add_finish(v.index.size());
-                T** end = v.index.end();
-                while(temp2 != end) {
+                T** last = v.index.end();
+                while(temp2 != last) {
                     *temp1++ = new T(**temp2++);
                 }
             }
@@ -182,34 +172,34 @@ namespace mystd {
                 index.swap(v.index);
             }
 
-            T& operator[] (size_type i) {
-                return *index[i];
-            }
+            T& operator[] (size_type i) { return *index[i]; }
 
 
-            void erase(size_type first, size_type end) {
-                if(first >= 0 && end < index.size()) {
+            iterator erase(size_type first, size_type last) {
+                if(first >= 0 && last <= index.size()) {
                     T** temp = index.begin();
-                    for(auto i = first;i != end;++i) {
+                    for(auto i = first;i != last;++i) {
                         delete temp[i];
                     }
-                    index.erase(temp + first,temp + end);
+                    index.erase(temp + first,temp + last);
+                    return iterator(index.begin() + first);
                 }
+                return this->last();
             }//* 推荐使用数字而不是迭代器
 
-            iterator erase(iterator first, iterator end) {
-                size_type size = end.subtraction(first);
+            iterator erase(iterator first, iterator last) {
+                size_type size = last.subtraction(first);
                 T** temp1 = first.get();
-                T** _end = end.get();
-                while(temp1 != _end) {
+                T** _last = last.get();
+                while(temp1 != _last) {
                     delete *temp1++;
                 }
-                index.erase(first.get(), end.get());
+                index.erase(first.get(), last.get());
                 return first;
             }
 
-            void erase(size_type first) {
-                erase(first, first + 1);
+            iterator erase(size_type first) {
+                return erase(first, first + 1);
             }//* 推荐使用数字而不是迭代器
 
             iterator erase(iterator first) {
@@ -240,8 +230,8 @@ namespace mystd {
                 insert(first, 1, x);
             }
 
-            void insert(size_type first, T* array_first, T* array_end) {
-                size_type size = array_end - array_first;
+            void insert(size_type first, T* array_first, T* array_last) {
+                size_type size = array_last - array_first;
                 T* temp[size];
                 for(size_type i = 0;i < size;++i) {
                     temp[i] = new T(array_first[i]);
@@ -249,8 +239,8 @@ namespace mystd {
                 index.insert(index.begin() + first, temp, temp + size);
             }//* 推荐使用数字而不是迭代器
 
-            iterator insert(iterator first, T* array_first, T* array_end) {
-                size_type size = array_end - array_first;
+            iterator insert(iterator first, T* array_first, T* array_last) {
+                size_type size = array_last - array_first;
                 T* temp[size];
                 for(size_type i = 0;i < size;++i) {
                     temp[i] = new T(array_first[i]);
@@ -259,17 +249,13 @@ namespace mystd {
                 return first;
             }
 
-            void swap(veclist<T>& v) {
-                index.swap(v.index);
-            }
+            void swap(veclist<T>& v) { index.swap(v.index); }
             
-            void swap(veclist<T>&& v) {
-                index.swap(v.index);
-            }
+            void swap(veclist<T>&& v) { index.swap(v.index); }
 
             template <typename X>
-            iterator find(iterator first, iterator end, const X& x) {
-                while(first != end) {
+            iterator find(iterator first, iterator last, const X& x) {
+                while(first != last) {
                     if(*first == x) {
                         break;
                     }
@@ -278,7 +264,13 @@ namespace mystd {
                 return first;
             }
 
+            T& at(size_type i) { return *index.at(i); }
+
             bool empty() { return index.empty(); }
+
+            std::size_t get_number(iterator it) {
+                return  index.get_number(it.get());                
+            }
     };
 }
 #endif

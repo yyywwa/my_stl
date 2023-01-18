@@ -1,7 +1,11 @@
 #include<iostream>
+#include"./other.cpp"
 #ifndef _MY_VECTOR_CPP
 #define _MY_VECTOR_CPP
-
+                                //*一切有为法
+                                //*如梦幻泡影
+                                //*如露亦如电
+                                //*应做如是观
 namespace mystd {
     template <typename T>
     class vector {
@@ -14,7 +18,7 @@ namespace mystd {
         private:
             iterator start;
             iterator finish;
-            iterator end_of_storage;
+            iterator last_of_storage;
 
             void _create(size_type size = _DEFUALT_SIZE) {
                 if(size <= 0) {
@@ -22,41 +26,38 @@ namespace mystd {
                 }
                 start = new T[size]();
                 finish = start;
-                end_of_storage = start + size;
+                last_of_storage = start + size;
             } 
 
             void _create(size_type size, const T& x) {
                 start = new T[size]();
-                for(size_type i = 0;i < size;++i) {
-                    start[i] = x;
-                }
-                end_of_storage = start + size;
-                finish = end_of_storage;
+                last_of_storage = start + size;
+                fill_n(start, last_of_storage, x);
+                finish = last_of_storage;
             }
 
-            void _inside_copy(iterator first, iterator end, iterator new_first) {
+            void _inside_copy(iterator first, iterator last, iterator new_first) {
                 if(new_first == first) {
                     return;
                 }
-                if(new_first < first || new_first >= end_of_storage) {
-                    for(;first != end;++new_first, ++first) {
+                if(new_first < first || new_first >= last_of_storage) {
+                    for(;first != last;++new_first, ++first) {
                         *new_first = *first;
                     }
                 }
-                else { //* first < new_first < end_of_storage
-                    iterator temp1 = new_first - first + end - 1;
-                    iterator temp2 = end - 1;
+                else { //* first < new_first < last_of_storage
+                    iterator temp1 = new_first - first + last - 1;
+                    iterator temp2 = last - 1;
                     for(;temp2 >= first;--temp1, --temp2) {
                         *temp1 = *temp2;
                     }
                 }
             }
 
-            void _exterior_copy(iterator first, iterator end, iterator new_first) {
-                for(;first != end;++first, ++new_first) {
-                    *new_first = *first;
-                }
+            void _exterior_copy(iterator first, iterator last, iterator new_first) {
+                copy(first, last, new_first);
             }
+
 
             void _realloc(size_type size) {
                 if(size < finish - start) {
@@ -67,7 +68,7 @@ namespace mystd {
                     delete[] start;
                     start = new T[size]();
                     finish = start;
-                    end_of_storage = start + size;
+                    last_of_storage = start + size;
                 }
             }
 
@@ -77,7 +78,7 @@ namespace mystd {
                 finish = temp + (finish - start);
                 delete[] start;
                 start =  temp;
-                end_of_storage = start + size;
+                last_of_storage = start + size;
             }
 
         public:
@@ -99,11 +100,11 @@ namespace mystd {
                 finish = start + v.size();
             }
 
-            vector(iterator first, iterator end) {
-                if(first != nullptr && end != nullptr) {
-                    size_type size = end - first;
+            vector(iterator first, iterator last) {
+                if(first != nullptr && last != nullptr) {
+                    size_type size = last - first;
                     _create(size * 2);
-                    _exterior_copy(first, end, start);
+                    _exterior_copy(first, last, start);
                     finish = start + size;
                 }
                 else {
@@ -123,7 +124,7 @@ namespace mystd {
 
             size_type size() { return finish - start; }
 
-            size_type capacity() { return end_of_storage - start; }
+            size_type capacity() { return last_of_storage - start; }
 
             iterator begin() { return start; }
 
@@ -147,12 +148,12 @@ namespace mystd {
                 _exterior_copy(v.begin(), v.end(), start);
             }
 
-            bool empty() {return start == finish; }
+            bool empty() { return start == finish; }
 
             bool operator==(vector<T>& v) { return start == v.start; }
 
             void push_back(const T& x) {
-                if(finish != end_of_storage) {
+                if(finish != last_of_storage) {
                     *finish++ = x;
                 }
                 else {
@@ -171,10 +172,10 @@ namespace mystd {
                 return start[i];
             }
 
-            iterator erase(iterator first, iterator end) {
-                if(first >= start && end <= end_of_storage) {
-                    _inside_copy(end, finish, first);
-                    finish -= end - first;
+            iterator erase(iterator first, iterator last) {
+                if(first >= start && last <= last_of_storage) {
+                    _inside_copy(last, finish, first);
+                    finish -= last - first;
                 }
                 return first;
             }
@@ -188,16 +189,17 @@ namespace mystd {
             }
 
             iterator insert(iterator first, size_type size, const T& x) {
-                if(first >= start && first < end_of_storage) {
-                    if(finish + size >= end_of_storage) {
+                if(first >= start && first < last_of_storage) {
+                    if(finish + size >= last_of_storage) {
                          size_type temp = finish - first;
                          _keep_realloc((this->size() + size) * 2);
                          first = finish - temp;//* realloc之后就换地址了
                     }
                     _inside_copy(first, finish, first + size);
-                    for(size_type i = 0;i < size;++i) {
+                    fill_n(first, first + size, x);
+                    /*for(size_type i = 0;i < size;++i) {
                         first[i] = x;
-                    }
+                    }*/
                     finish += size;
                 }
                 return first;
@@ -207,16 +209,16 @@ namespace mystd {
                 return insert(first, 1, x);
             }
 
-            iterator insert(iterator _first, iterator array_first, iterator array_end) {
-                if(_first >= start && _first < end_of_storage) {
-                    size_type size = array_end - array_first;
-                    if(finish + size >= end_of_storage) {
+            iterator insert(iterator _first, iterator array_first, iterator array_last) {
+                if(_first >= start && _first < last_of_storage) {
+                    size_type size = array_last - array_first;
+                    if(finish + size >= last_of_storage) {
                          size_type temp = finish - _first;
                          _keep_realloc((this->size() + size) * 2);
                          _first = finish - temp;//* realloc之后就换地址了
                     }
                     _inside_copy(_first, finish, _first + size);
-                    _exterior_copy(array_first, array_end, _first);
+                    _exterior_copy(array_first, array_last, _first);
                     finish += size;
                 }
                 return _first;
@@ -258,8 +260,8 @@ namespace mystd {
                 finish = temp;
 
                 temp = v.end_of_storage;
-                v.end_of_storage = end_of_storage;
-                end_of_storage = temp;
+                v.end_of_storage = last_of_storage;
+                last_of_storage = temp;
             }
 
             void swap(vector<T>&& v) {
@@ -272,9 +274,9 @@ namespace mystd {
                 finish = temp;
 
                 temp = v.end_of_storage;
-                v.end_of_storage = end_of_storage;
-                end_of_storage = temp;
-            }
+                v.end_of_storage = last_of_storage;
+                last_of_storage = temp;
+            }//* 自己的start交给右值对象删除
 
             iterator find(const T& x) {
                 iterator temp;
@@ -286,12 +288,28 @@ namespace mystd {
                 return temp; 
             }
 
+            reference at(size_type i) {
+                if(i >= size()) {
+                    throw "Array out of bounds";
+                }
+                return start[i];
+            }
+
             void realloc(size_type size) {
                 _realloc(size);
             }
 
             void _add_finish(size_type i) {
                 finish += i;
+            }
+
+            std::size_t get_number(iterator i) {
+                if(i >= start && i < finish) {
+                    return i - start;
+                }
+                else {
+                    return 0;
+                }
             }
     };
 }
