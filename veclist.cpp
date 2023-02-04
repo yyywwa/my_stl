@@ -3,135 +3,155 @@
 #define _MY_VECLIST_CPP
 namespace mystd {
 
-template <typename T>
-class veclist {
-  public:
-    typedef T value_type;
-    typedef T& reference;
-    typedef std::size_t size_type;
-  private:
-    vector<T*> index;
-
-    void del() {
-      T** temp = index.begin();
-      T** last = index.end();
-      while (temp != last) {
-        delete *temp++;
-      }
-      index.clear();
-    }
-
-    void unfold() {}
-    template <typename ...Args>
-    void unfold(const T& x,const Args& ...args) {
-      push_back(new T(x));
-      unfold(args...);
-    }
-
-  public:
-
-    class iterator {
-      typedef iterator&   iterator_reference;
-      private:
-        T** _ptr;
+  namespace _m_detail {
+    template <typename _Tp>
+    class _Veclist_iterator { 
       public:
-        iterator():_ptr(nullptr) {}
+        using _Ref = _Veclist_iterator<_Tp>;
+        using size_type = std::size_t;
 
-        iterator(T** ptr):_ptr(ptr) {}
+        using iterator_category = std::random_access_iterator_tag;
+        using value_type  = _Tp;
+        using pointer     = _Tp*;
+        using difference_type   = std::ptrdiff_t;
+        using reference   = _Tp&;
+      private:
+        _Tp** _ptr;
+      public:
+        _Veclist_iterator() : _ptr(nullptr)  {}
 
-        T** get() { return _ptr; }
+        _Veclist_iterator(_Tp** ptr) : _ptr(ptr) {}
 
-        T& operator*() { return **_ptr; }
+        _Tp** get() const { return _ptr; }
 
-        T* operator->() { return *_ptr; }
+        reference operator*() { return **_ptr; }
 
-        iterator_reference operator++() { ++_ptr; return *this; }
+        pointer operator->() { return *_ptr; }
 
-        iterator operator++(int) {
-          iterator temp(_ptr);
+        _Ref& operator++() { ++_ptr; return *this; }
+
+        _Ref operator++(int) {
+          _Ref temp(_ptr);
           _ptr++;
           return temp;
         }
 
-        iterator_reference operator--() { --_ptr; return *this; }
+        _Ref& operator--() { --_ptr; return *this; }
 
-        iterator operator--(int) {
-          iterator temp(_ptr);
+        _Ref operator--(int) {
+          _Ref temp(_ptr);
           _ptr--;
           return temp;
         } 
 
-        bool operator==(const iterator& i) { return _ptr == i._ptr; }
+        bool operator==(const _Ref& i) { return _ptr == i._ptr; }
 
-        bool operator!=(const iterator& i) { return _ptr != i._ptr; }
+        bool operator!=(const _Ref& i) { return _ptr != i._ptr; }
 
-        size_type subtraction(const iterator& i) { return _ptr - i._ptr; }
+        size_type subtraction(const _Ref& i) { return _ptr - i._ptr; }
 
-        iterator operator+(size_type n) { return iterator(_ptr + n); }
+        _Ref operator+(size_type n) { return _Ref(_ptr + n); }
 
-        iterator operator-(size_type n) { return iterator(_ptr - n); }
+        _Ref operator-(size_type n) { return _Ref(_ptr - n); }
 
-        friend std::ostream& operator<<(std::ostream& out, iterator& it) {
+        difference_type operator-(const _Ref& r) { return _ptr - r._ptr; }
+
+        friend std::ostream& operator<<(std::ostream& out, _Ref& it) {
           out << it._ptr;
-          return out;
-        }
+          return out; }
     };
+  }
+
+template <typename _Tp>
+class veclist {
+  public:
+    using _Ref = veclist<_Tp>;
+    using value_type = _Tp;
+    using reference = _Tp&;
+    using size_type = std::size_t;
+    using iterator = _m_detail::_Veclist_iterator<_Tp>;
+  private:
+    vector<value_type*> index;
+    friend class vector<value_type>;
+    void __clear() {
+      value_type** temp = index.begin();
+      value_type** last = index.end();
+      while (temp != last) {
+        delete *temp;
+        ++temp;
+      }
+    }
+
+    template <typename ...Args>
+    void __init(Args&& ...args) {
+      (push_back(std::forward<value_type>(args)), ...);
+    }
+
+  public:
 
     veclist() {}
 
     veclist(size_type size) : index(size) {}
 
-    veclist(veclist<T>&& v) {
-      swap(v);
-    }//*被编译器优化了
+    veclist(_Ref&& v) { swap(v); }//*被编译器优化了
 
-    veclist(T* first, T* last) : index((size_type)(last - first) * 2) {
-      T** temp = index.begin();
+    veclist(value_type* first, value_type* last) : index((last - first) * 2) {
+      value_type** temp = index.begin();
       index._add_finish(last - first);
       while (first != last) {
-        *temp++ = new T(*first++);
+        *temp = new value_type(*first);
+        ++temp;
+        ++first;
       }
     }
 
-    veclist(iterator first, iterator last) : index(last.subtraction(first) * 2) {
-      index._add_finish(last.subtraction(first));//*改变index.end()
-      T** temp1 = index.begin();
-      T** temp2 = first.get();
-      T** _last = index.end();
+    veclist(iterator first, iterator last) : index((last - first) * 2) {
+      index._add_finish(last - first);//*改变index.end()
+      value_type** temp1 = index.begin();
+      value_type** temp2 = first.get();
+      value_type** _last = index.end();
       while (temp1 != _last) {
-        *temp1++ = new T(**temp2++);
+        *temp1 = new value_type(**temp2);
+        ++temp1;
+        ++temp2;
       }
     }
 
-    veclist(veclist<T>& v) : index(v.index.capacity()) {
-      T** temp1 = index.begin();
-      T** temp2 = v.index.begin();
+    veclist(_Ref& v) : index(v.index.capacity()) {
+      value_type** temp1 = index.begin();
+      value_type** temp2 = v.index.begin();
       index._add_finish(v.index.size());
-      T** last = v.index.end();
+      value_type** last = v.index.end();
       while (temp2 != last) {
-        *temp1++ = new T(**temp2++);
+        *temp1 = new value_type(**temp2);
+        ++temp1;
+        ++temp2;
       }
     }
     
-
     template <typename ...Args>
-    veclist(const Args& ...args) {
-      unfold(args...);
-    }
+    veclist(Args&& ...args) 
+    : index(sizeof...(args) * 2) { __init(std::forward<value_type>(args)...); }
 
-    ~veclist() {
-      del();
-    }
+    ~veclist() { __clear(); }
 
-    void push_back(const T& x) {
-      index.push_back(new T(x));
-    }
+    void push_back(value_type& x) { index.push_back(new value_type(x)); }
 
-    void push_back(T* ptr) {
-      if (ptr != nullptr) {
-        index.push_back(ptr);
+    void push_back(value_type&& x) { index.push_back(new value_type(std::move(x))); }
+
+    template<typename _T>
+    void push_dif(_T&& x) {
+      size_type size = index.size();
+      for (size_type i = 0;i != size;++i) {
+        if (*index[i] == x)
+          return;//* 如果有重复的就不添加
       }
+      push_back(std::forward<_T>(x));
     }
+
+    void push_back(value_type* ptr) {
+      if (ptr != nullptr)
+        index.push_back(ptr); }
 
     void pop_back() {
       if (index.size() != 0) {
@@ -142,134 +162,129 @@ class veclist {
 
     size_type size() { return index.size(); }
 
-    T& front() { return *index.front(); }
+    value_type& front() { return *index.front(); }
 
-    T& back() { return *index.back(); }
+    value_type& back() { return *index.back(); }
 
     iterator begin() { return iterator(index.begin()); }
 
     iterator end() { return iterator(index.end()); }
 
-    void operator=(veclist<T>& v) {
-      del();  
-      if (index.capacity() < v.index.capacity()) {
-        index.realloc(v.index.capacity());
-      } else {
-        index.clear();
-      }
-      auto size = v.size();
-      T** temp1 = index.begin();
-      T** temp2 = v.index.begin();
-      for (auto i = 0;i < size;++i) {
-        temp1[i] = new T(*temp2[i]);
-      }
-      index._add_finish(size);
+    veclist& operator=(_Ref& v) {
+      if (this == &v)
+        return *this;
+
+      size_type old_size = this->size();
+      size_type new_size = v.size();
+      
+      if (index.capacity() < v.index.capacity())
+        index._keep_realloc(v.index.capacity());
+      index.clear();
+
+      value_type** _begin = index.begin(); 
+      value_type** _v_begin = v.index.begin();
+      for (size_type i = 0;i < old_size;++i)
+        *(_begin + i) = *(_v_begin + i);
+
+      if (old_size < new_size) {
+        while (old_size < new_size) {
+          this->push_back(v[old_size]);
+          ++old_size;
+        }
+      } 
+      return *this;
     }
 
-    void operator=(veclist<T>&& v) {
-      del();
+    veclist& operator=(_Ref&& v) {
       index.swap(v.index);
-    }
+      return *this; }
 
-    T& operator[] (size_type i) { return *index[i]; }
-
+    value_type& operator[] (size_type i) { return *index[i]; }
 
     iterator erase(size_type first, size_type last) {
       if (first >= 0 && last <= index.size()) {
-        T** temp = index.begin();
-        for (auto i = first;i != last;++i) {
+        value_type** temp = index.begin();
+        for (auto i = first;i != last;++i)
           delete temp[i];
-        }
         index.erase(temp + first,temp + last);
-        return iterator(index.begin() + first);
       }
-      return this->last();
+      return iterator(index.begin() + first);
     }//* 推荐使用数字而不是迭代器
 
     iterator erase(iterator first, iterator last) {
       size_type size = last.subtraction(first);
-      T** temp1 = first.get();
-      T** _last = last.get();
-      while (temp1 != _last) {
-        delete *temp1++;
+      value_type** temp = first.get();
+      value_type** _last = last.get();
+      while (temp != _last) {
+        delete *temp;
+        ++temp;
       }
       index.erase(first.get(), last.get());
       return first;
     }
 
-    iterator erase(size_type first) {
-      return erase(first, first + 1);
-    }//* 推荐使用数字而不是迭代器
+    iterator erase(size_type first) { return erase(first, first + 1); }//* 推荐使用数字而不是迭代器
 
-    iterator erase(iterator first) {
-      return erase(first, first + 1); 
-    }
+    iterator erase(iterator first) { return erase(first, first + 1); }
 
-    void insert(size_type first, size_type size, const T& x) {
-      T* temp[size];
-      for (size_type i = 0;i < size;++i) {
-        temp[i] = new T(x);
-      }
+    void insert(size_type first, size_type size, const value_type& x) {
+      value_type* temp[size];
+      for (size_type i = 0;i < size;++i)
+        temp[i] = new value_type(x);
       index.insert(index.begin() + first, temp, temp + size);
     }//* 推荐使用数字而不是迭代器
 
-    iterator insert(iterator first, size_type size, const T& x) {
-      T* temp[size];
-      for (size_type i = 0;i < size;++i) {
-        temp[i] = new T(x);
-      }
+    iterator insert(iterator first, size_type size, const value_type& x) {
+      value_type* temp[size];
+      for (size_type i = 0;i < size;++i)
+        temp[i] = new value_type(x);
       index.insert(first.get(), temp, temp + size);
     }
     
-    void insert(size_type first, const T& x) {
-      insert(first, 1, x);
-    }
+    void insert(size_type first, const value_type& x) { insert(first, 1, x); }
 
-    iterator insert(iterator first, const T& x) {
-      insert(first, 1, x);
-    }
+    iterator insert(iterator first, const value_type& x) { insert(first, 1, x); }
 
-    void insert(size_type first, T* array_first, T* array_last) {
+    void insert(size_type first, value_type* array_first, value_type* array_last) {
       size_type size = array_last - array_first;
-      T* temp[size];
-      for (size_type i = 0;i < size;++i) {
-        temp[i] = new T(array_first[i]);
-      }
+      value_type* temp[size];
+      for (size_type i = 0;i < size;++i)
+        temp[i] = new value_type(array_first[i]);
       index.insert(index.begin() + first, temp, temp + size);
     }//* 推荐使用数字而不是迭代器
 
-    iterator insert(iterator first, T* array_first, T* array_last) {
+    iterator insert(iterator first, value_type* array_first, value_type* array_last) {
       size_type size = array_last - array_first;
-      T* temp[size];
-      for (size_type i = 0;i < size;++i) {
-        temp[i] = new T(array_first[i]);
-      }
+      value_type* temp[size];
+      for (size_type i = 0;i < size;++i)
+        temp[i] = new value_type(array_first[i]);
       index.insert(first.get(), temp, temp + size);
       return first;
     }
 
-    void swap(veclist<T>& v) { index.swap(v.index); }
+    void swap(_Ref& v) { index.swap(v.index); }
     
-    void swap(veclist<T>&& v) { index.swap(v.index); }
+    void swap(_Ref&& v) { index.swap(v.index); }
 
     template <typename X>
     iterator find(iterator first, iterator last, const X& x) {
       while (first != last) {
-        if (*first == x) {
+        if (*first == x)
           break;
-        }
         ++first;
       }
       return first;
     }
 
-    T& at(size_type i) { return *index.at(i); }
+    reference at(size_type i) { return *index.at(i); }
 
     bool empty() { return index.empty(); }
 
-    std::size_t get_number(iterator it) {
-      return  index.get_number(it.get());        
-    }
+    void clear() {
+      __clear();
+      index.clear(); }
+
+    long get_number(const iterator& it) { return (it - begin() < 0) ? -1 : it - begin(); }
 };
 
 }

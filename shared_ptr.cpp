@@ -48,14 +48,11 @@ class shared_ptr {
       }
     }
 
-    void _delete(POINTER ptr) {
-        __deleter(ptr);
-    } 
+    void _delete(POINTER ptr) { __deleter(ptr); } 
 
     void _subtract_pointer(POINTER ptr) {
-      if (ptr == nullptr) {
+      if (ptr == nullptr)
         return;
-      }
       auto it = _map.find(_map.begin(), _map.end(), ptr);
       if (it == _map.end()) {
         return;
@@ -71,23 +68,17 @@ class shared_ptr {
   public:
     shared_ptr(POINTER ptr) : _ptr(ptr) {
       _add_pointer(ptr);
-      __deleter = default_deleter<POINTER>;
-    }
+      __deleter = default_deleter<POINTER>; }
 
     template <typename DELETER>
     shared_ptr(POINTER ptr, DELETER&& d) : _ptr(ptr) {
       _add_pointer(ptr);
-      __deleter = std::forward<DELETER>(d);
-    }
+      __deleter = std::forward<DELETER>(d); }
 
-    ~shared_ptr() {
-      _subtract_pointer(_ptr);
-    }
+    ~shared_ptr() { _subtract_pointer(_ptr); }
 
     template <typename DELETER>
-    void setDeleter(DELETER&& d) {
-        __deleter = d;
-    }
+    void setDeleter(DELETER&& d) { __deleter = d; }
 
     REFERENCE operator*() { return *_ptr; }
 
@@ -107,19 +98,16 @@ class shared_ptr {
 
     void reset() {
       _subtract_pointer(_ptr);
-      _ptr = nullptr;
-    }
+      _ptr = nullptr; }
 
     std::size_t use_count() { 
       auto it = _map.find(_map.begin(), _map.end(), _ptr);
-      return it->get_count();
-    }
+      return it->get_count(); }
 
     void swap(shared_ptr& s) {
       POINTER temp_p = s._ptr;
       s._ptr = _ptr;
       _ptr = temp_p;
-      
       __deleter.swap(s.__deleter);
     }
 };

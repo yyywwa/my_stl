@@ -5,6 +5,86 @@
 
 namespace mystd {
 
+template <typename T>
+class function;
+
+template <typename _Return_type, typename ..._Parameter>
+class function<_Return_type(_Parameter...)> {
+  private:
+    class _basic_function {
+      public:
+        virtual _Return_type operator()(_Parameter...) = 0;
+        virtual ~_basic_function() {}
+        virtual _basic_function* copy() = 0;
+    };
+    _basic_function* _handle;
+
+    template <typename _Functor_type>
+    class _function_driver : public _basic_function {
+      private:
+        _Functor_type base;
+      public:
+        _function_driver(_Functor_type& functor) : base(functor) {} //* 传进来的一定是左值
+
+        virtual _Return_type operator()(_Parameter ...args) override {
+          return base(std::forward<_Parameter>(args)...);
+        }
+
+        virtual _basic_function* copy() override {
+          return new _function_driver<_Functor_type>(base);
+        }
+    };
+
+  public:
+    function() : _handle(nullptr) {}
+
+    function(const function& f) : _handle(f._handle->copy()) {}
+
+    template <typename _Functor_type>
+    function(_Functor_type functor) : _handle(new _function_driver(functor)) {}
+
+    ~function() {
+      if (_handle != nullptr) 
+        delete _handle;
+    }
+
+    bool operator==(const function& f) {
+      return _handle == f._handle;
+    }
+
+    bool operator!=(const function& f) {
+      return _handle != f._handle;
+    }
+
+    function& operator=(const function& f) {
+      if (*this == f) {
+        return *this;
+      } else { 
+        if (_handle != nullptr)
+          delete _handle;
+        _handle = f._handle->copy(); 
+      }
+    }
+
+    template <typename _Functor_type>
+    function& operator=(_Functor_type functor) {
+      if (_handle != nullptr)
+        delete _handle;
+      _handle = new _function_driver(functor);
+      return *this;
+    }
+
+    _Return_type operator()(_Parameter ...args) {
+      return _handle->operator()(std::forward<_Parameter>(args)...);
+    }
+
+    void swap(function& f) {
+      auto temp_p = f._handle;
+      f._handle = _handle;
+      _handle = temp_p;
+    }
+};
+
 /*
 template <typename T>
 class function;
@@ -69,87 +149,6 @@ class function<Return_type(Parameter...)> {
 
 };
 */
-
-template <typename T>
-class function;
-
-template <typename _Return_type, typename ..._Parameter>
-class function<_Return_type(_Parameter...)> {
-  private:
-    class _basic_function {
-      public:
-        virtual _Return_type operator()(_Parameter...) = 0;
-        virtual ~_basic_function() {}
-        virtual _basic_function* copy() = 0;
-    };
-    _basic_function* _handle;
-
-    template <typename _Functor_type>
-    class _function_driver : public _basic_function {
-      private:
-        _Functor_type base;
-      public:
-        _function_driver(_Functor_type& functor) : base(functor) {} //* 传进来的一定是左值
-
-        virtual _Return_type operator()(_Parameter ...args) {
-          return base(std::forward<_Parameter>(args)...);
-        }
-
-        virtual _basic_function* copy() {
-          return new _function_driver<_Functor_type>(base);
-        }
-    };
-
-  public:
-    function() : _handle(nullptr) {}
-
-    function(const function& f) : _handle(f._handle->copy()) {}
-
-    template <typename _Functor_type>
-    function(_Functor_type functor) : _handle(new _function_driver(functor)) {}
-
-    ~function() {
-      if (_handle != nullptr) 
-        delete _handle;
-    }
-
-    bool operator==(const function& f) {
-      return _handle == f._handle;
-    }
-
-    bool operator!=(const function& f) {
-      return _handle != f._handle;
-    }
-
-    function& operator=(const function& f) {
-      if (*this == f) {
-        return *this;
-      } else { 
-        if (_handle != nullptr)
-          delete _handle;
-        _handle = f._handle->copy(); 
-      }
-    }
-
-    template <typename _Functor_type>
-    function& operator=(_Functor_type functor) {
-      if (_handle != nullptr)
-        delete _handle;
-      _handle = new _function_driver(functor);
-      return *this;
-    }
-
-    _Return_type operator()(_Parameter ...args) {
-      return _handle->operator()(std::forward<_Parameter>(args)...);
-    }
-
-    void swap(function& f) {
-      auto temp_p = f._handle;
-      f._handle = _handle;
-      _handle = temp_p;
-      temp_p = nullptr;
-    }
-};
 
 }
 
